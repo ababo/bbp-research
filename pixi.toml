@@ -1,0 +1,13 @@
+[project]
+authors = ["Simon Golbert <simongolbert@proton.me>"]
+channels = ["conda-forge"]
+description = "My research work"
+name = "research"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+pytorch = ">=2.5.1,<3"
+ipykernel = ">=6.29.5,<7"

@@ -1,0 +1,9 @@
+{
+    "cSpell.words": [
+        "keepdim",
+        "pixi",
+        "pycache"
+    ],
+    "python.analysis.extraPaths": ["src"],
+    "python.defaultInterpreterPath": ".pixi/envs/default/bin/python"
+}
