@@ -1,9 +1,17 @@
 {
     "cSpell.words": [
+        "Golbert",
+        "ipykernel",
         "keepdim",
         "pixi",
-        "pycache"
+        "pycache",
+        "pytest"
     ],
-    "python.analysis.extraPaths": ["src"],
-    "python.defaultInterpreterPath": ".pixi/envs/default/bin/python"
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/src"
+    ],
+    "python.defaultInterpreterPath": ".pixi/envs/default/bin/python",
+    "terminal.integrated.env.osx": {
+        "PYTHONPATH": "src"
+    }
 }

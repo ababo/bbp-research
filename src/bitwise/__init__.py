@@ -1,3 +1,3 @@
-from bitwise._tensor import tensor, Tensor
+from bitwise._tensor import tensor, TensorLiteral, pack, to_str
 
-__all__ = ["tensor", "Tensor"]
+__all__ = ["tensor", "TensorLiteral", "pack", "to_str"]
