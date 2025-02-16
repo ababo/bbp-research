@@ -59,12 +59,7 @@ def pack(tensor: torch.Tensor) -> torch.Tensor:
     words = words.expand(*shape[:-1], -1)
     shifts = shifts.expand_as(tensor)
 
-    packed.scatter_add_(
-        -1,
-        words.to(torch.int64),
-        ((tensor != 0).to(torch.int32) << shifts).to(torch.int32),
-    )
-
+    packed.scatter_add_(-1, words.to(torch.int64), (tensor != 0) << shifts)
     return packed
 
 
