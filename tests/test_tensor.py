@@ -60,7 +60,7 @@ def test_pack():
     )
     assert torch.equal(packed_tensor, expected_tensor)
 
-    tensor = torch.cat([tensor, tensor, tensor])
+    tensor = torch.cat([tensor, tensor, tensor.to(dtype=torch.bool)])
     packed_tensor = bitwise.pack(tensor)
     expected_tensor = torch.cat([expected_tensor, expected_tensor, expected_tensor])
     assert torch.equal(packed_tensor, expected_tensor)
