@@ -7,6 +7,7 @@
         "pycache",
         "pytest"
     ],
+    "latex-workshop.latex.outDir": "build",
     "python.analysis.extraPaths": [
         "${workspaceFolder}/src"
     ],
