@@ -65,7 +65,7 @@ def pack(tensor: torch.Tensor) -> torch.Tensor:
 
 def to_str(tensor: torch.Tensor):
     """Returns a string representation of a PyTorch torch.int32 tensor in binary form."""
-    tensor = tensor.view(dtype=torch.uint32)
-    np_array = np.vectorize(lambda x: f"{x:032b}")(tensor.numpy())
+    np_array = tensor.numpy().astype(np.uint32)
+    np_array = np.vectorize(lambda x: f"{x:032b}")(np_array)
     np_array = np.apply_along_axis(lambda row: "_".join(row), -1, np_array)
     return str(np_array)
