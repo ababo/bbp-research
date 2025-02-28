@@ -1,57 +1,36 @@
 \documentclass{article}
-\usepackage{amsmath, amssymb}
+\usepackage{amsmath}
+
+\setlength{\parskip}{8pt}
 
 \begin{document}
 
-\textbf{Boolean Projection and Sensitivity Matrix Definitions}
-
-Let \( W \) be a Boolean matrix of size \( m \times n \) and \( V \) be a Boolean row vector of size \( 1 \times n \).
-
-\section*{Boolean Projection}
-We define the Boolean projection operation \( \mathcal{P} \) as:
-
+\section{Row Activation}
+The \textbf{Row Activation} operation is defined for two Boolean matrices \( X, W \) of size \( m \times n \). It is denoted as:
 \[
-\mathcal{P}_j(W, V) = \bigvee_{i=1}^{m} (w_{ij} \land v_j), \quad \forall j \in \{1, \dots, n\}
+Z = A(X, W)
 \]
-
-where:
-- \( w_{ij} \) is the element of \( W \) at row \( i \) and column \( j \).
-- \( v_j \) is the \( j \)-th element of \( V \).
-- \( \land \) represents element-wise Boolean AND.
-- \( \bigvee \) represents a column-wise Boolean OR reduction.
-
-\textbf{Output:} \( \mathcal{P}(W, V) \) is a Boolean row vector of size \( 1 \times n \):
-
+and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:  
 \[
-\mathcal{P}(W, V) =
-\begin{bmatrix}
-\bigvee_{i=1}^{m} (w_{i1} \land v_1) &
-\bigvee_{i=1}^{m} (w_{i2} \land v_2) &
-\dots &
-\bigvee_{i=1}^{m} (w_{in} \land v_n)
-\end{bmatrix}
+Z_{1i} = \bigvee_{j=1}^{n} \left( X_{ij} \wedge W_{ij} \right).
 \]
+In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
 
-\section*{Boolean Sensitivity Matrix}
-We define the Boolean sensitivity matrix \( \mathcal{S} \) as:
+The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
 
+\section*{Activation Sensitivity}
+The \textbf{Activation Sensitivity} operation is defined for two Boolean matrices \( X, W \) of size \( m \times n \). It is denoted as:
 \[
-\mathcal{S}_{ij}(W, V) = \mathbb{1} \left( \mathcal{P}(W, V) \neq \mathcal{P}(W^{(ij)}, V) \right)
+G = S(X, W)
 \]
-
-where:
-- \( W^{(ij)} \) is the matrix \( W \) with the element \( W_{ij} \) flipped (0 to 1 or 1 to 0).
-- \( \mathbb{1}(\cdot) \) is the indicator function, returning 1 if the condition is true, otherwise 0.
-
-\textbf{Output:} \( \mathcal{S}(W, V) \) is a Boolean matrix of size \( m \times n \):
-
+and produces an \( m \times n \) Boolean matrix \( G \), where each element \( G_{ij} \) (for \( i = 1, 2, \dots, m \), \( j = 1, 2, \dots, n \)) is computed as:  
 \[
-\mathcal{S}(W, V) =
-\begin{bmatrix}
-\mathbb{1} \left( \mathcal{P}(W, V) \neq \mathcal{P}(W^{(11)}, V) \right) & \dots & \mathbb{1} \left( \mathcal{P}(W, V) \neq \mathcal{P}(W^{(1n)}, V) \right) \\
-\vdots & \ddots & \vdots \\
-\mathbb{1} \left( \mathcal{P}(W, V) \neq \mathcal{P}(W^{(m1)}, V) \right) & \dots & \mathbb{1} \left( \mathcal{P}(W, V) \neq \mathcal{P}(W^{(mn)}, V) \right)
-\end{bmatrix}
+G_{ij} = \left( A(X, W) \neq A(X^{(ij)}, W) \right),
 \]
+where \( X^{(ij)} \) denotes the matrix \( X \) with the element \( X_{ij} \) flipped.
+
+In other words, \( G_{ij} \) is true if changing \( X_{ij} \) alters the result of the \textbf{Row Activation} operation. This measures the sensitivity of each input element to the row activation output.
+
+Similarly to \textbf{Row Activation}, the \textbf{Activation Sensitivity} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, as before, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
 
 \end{document}
