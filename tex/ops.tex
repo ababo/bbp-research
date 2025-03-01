@@ -11,17 +11,18 @@ The \textbf{Row Activation} operation is defined for a Boolean row vector \( X \
 \[
 Z = \mathcal{A}(X, W)
 \]
-and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:  
+and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:
 \[
 Z_{1i} = \bigvee_{j=1}^{n} \left( X_{1j} \wedge W_{ij} \right).
 \]
 In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{1j} \) and \( W_{ij} \) are true.
-\section*{Activation Sensitivity}
+
+\section{Activation Sensitivity}
 The \textbf{Activation Sensitivity} operation is defined for two Boolean matrices \( A, B \) of size \( m \times n \). It is denoted as:
 \[
 C = \mathcal{S}(A, B)
 \]
-and produces an \( m \times n \) Boolean matrix \( C \), where each element \( C_{ij} \) (for \( i = 1, 2, \dots, m \), \( j = 1, 2, \dots, n \)) is computed as:  
+and produces an \( m \times n \) Boolean matrix \( C \), where each element \( C_{ij} \) (for \( i = 1, 2, \dots, m \), \( j = 1, 2, \dots, n \)) is computed as:
 \[
 C_{ij} = \left( \mathcal{A}(A, B) \neq \mathcal{A}(A^{(ij)}, B) \right),
 \]
@@ -30,5 +31,16 @@ where \( A^{(ij)} \) denotes the matrix \( A \) with the element \( A_{ij} \) fl
 In other words, \( C_{ij} \) is true if changing \( A_{ij} \) alters the result of the \textbf{Row Activation} operation. This measures the sensitivity of each input element to the row activation output.
 
 The \textbf{Activation Sensitivity} operation can be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+
+\section{Error Projection}
+The \textbf{Error Projection} operation is defined for a Boolean matrix \( S \) of size \( m \times n \) and a Boolean row vector \( E \) of size \( 1 \times m \). It is denoted as:
+\[
+E' = \mathcal{P}(S, E)
+\]
+and produces a \( 1 \times n \) Boolean row vector \( E' \), where each element \( E'_{1i} \) (for \( i = 1, 2, \dots, n \)) is computed as:
+\[
+E'_{1i} = \left( \bigvee_{j: E_{1j} = 1} S_{ji} \right) \wedge \neg \left( \bigvee_{j: E_{1j} = 0} S_{ji} \right).
+\]
+In other words, \( E'_{1i} \) is true if there exists at least one row \( j \) where \( E_{1j} \) is true and \( S_{ji} \) is also true, while ensuring that no row \( j \) where \( E_{1j} \) is false contributes a true value in \( S_{ji} \).
 
 \end{document}
