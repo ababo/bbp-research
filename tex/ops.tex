@@ -37,10 +37,10 @@ The \textbf{Error Projection} operation is defined for a Boolean matrix \( S \) 
 \[
 E' = \mathcal{P}(S, E)
 \]
-and produces a \( 1 \times n \) Boolean row vector \( E' \), where each element \( E'_{1i} \) (for \( i = 1, 2, \dots, n \)) is computed as:
+and produces a \( 1 \times n \) Boolean row vector \( E' \), where each element \( E'_{1j} \) (for \( j = 1, 2, \dots, n \)) is computed as:
 \[
-E'_{1i} = \left( \bigvee_{j: E_{1j} = 1} S_{ji} \right) \wedge \neg \left( \bigvee_{j: E_{1j} = 0} S_{ji} \right).
+E'_{1j} = \left( \bigvee_{j: E_{1i} = 1} S_{ij} \right) \wedge \neg \left( \bigvee_{i: E_{1i} = 0} S_{ij} \right).
 \]
-In other words, \( E'_{1i} \) is true if there exists at least one row \( j \) where \( E_{1j} \) is true and \( S_{ji} \) is also true, while ensuring that no row \( j \) where \( E_{1j} \) is false contributes a true value in \( S_{ji} \).
+In other words, \( E'_{1j} \) is true if there exists at least one row \( i \) where \( E_{1i} \) is true and \( S_{ij} \) is also true, while ensuring that no row \( i \) where \( E_{1i} \) is false contributes a true value in \( S_{ij} \).
 
 \end{document}
