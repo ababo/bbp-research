@@ -159,3 +159,19 @@ def test_error_projection():
     results = bp.error_projection(s, e)
 
     assert torch.equal(results, expected)
+
+
+def test_pick_bit_per_row():
+    batch_size = 10
+    tensor = torch.randint(0, 2**32, (batch_size, 10, 10)).to(dtype=torch.int32)
+    result = bp.pick_bit_per_row(tensor)
+
+    # Ensure that (result & tensor) == result (i.e., no extra bits are set)
+    assert torch.all((result & tensor) == result)
+
+    # Sum across rows to get integer values
+    row_sums = result.sum(dim=2).int()
+
+    for batch in range(batch_size):
+        # Check that each row sum is a power of 2 (or zero)
+        assert all(x & (x - 1) == 0 for x in row_sums[batch])
