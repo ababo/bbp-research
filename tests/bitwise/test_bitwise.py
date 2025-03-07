@@ -3,36 +3,30 @@ import pytest
 import torch
 
 
-def test_tensor():
-    with pytest.raises(ValueError):
-        bitwise.tensor("100a1")
-
-    with pytest.raises(ValueError):
-        bitwise.tensor(["1001", "111"])
-
-    t = bitwise.tensor(
-        [
-            "00000000000000000000000000000001_00000000000000000000000000000010_00000000000000000000000000000011",
-            "00000000000000000000000000000100_00000000000000000000000000000101_00000000000000000000000000000110",
-        ]
-    )
-    assert torch.equal(t, torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.int32))
-
-    t = bitwise.tensor(
-        [
-            [
-                ["00000000000000000000000000000001_00000000000000000000000000000010"],
-                ["00000000000000000000000000000011_00000000000000000000000000000100"],
-                ["00000000000000000000000000000101_00000000000000000000000000000110"],
-            ]
-        ]
-    )
-    assert torch.equal(
-        t, torch.tensor([[[[1, 2]], [[3, 4]], [[5, 6]]]], dtype=torch.int32)
+def test_mask_rows():
+    batch_size = 2
+    num_rows = 34
+    matrices = torch.randint(0, 2**32, size=(batch_size, num_rows, 2)).to(
+        dtype=torch.int32
     )
 
-    t = bitwise.tensor("11111111111111111111111111111111")
-    assert torch.equal(t, torch.tensor([-1], dtype=torch.int32))
+    bit_masks = [
+        ["01110011100010011111000110001111_101"],
+        ["11101001001111000001001011111001_010"],
+    ]
+    bool_masks = [
+        [bool(int(bit)) for bit in mask[0].replace("_", "")] for mask in bit_masks
+    ]
+    bit_masks = bitwise.tensor(bit_masks)
+
+    result = bitwise.mask_rows(matrices, bit_masks)
+
+    for batch in range(batch_size):
+        for row in range(num_rows):
+            if bool_masks[batch][row]:
+                assert torch.equal(result[batch, row], matrices[batch, row])
+            else:
+                assert torch.all(result[batch, row] == 0)
 
 
 def test_pack():
@@ -64,6 +58,38 @@ def test_pack():
     packed_tensor = bitwise.pack(tensor)
     expected_tensor = torch.cat([expected_tensor, expected_tensor, expected_tensor])
     assert torch.equal(packed_tensor, expected_tensor)
+
+
+def test_tensor():
+    with pytest.raises(ValueError):
+        bitwise.tensor("100a1")
+
+    with pytest.raises(ValueError):
+        bitwise.tensor(["1001", "111"])
+
+    t = bitwise.tensor(
+        [
+            "00000000000000000000000000000001_00000000000000000000000000000010_00000000000000000000000000000011",
+            "00000000000000000000000000000100_00000000000000000000000000000101_00000000000000000000000000000110",
+        ]
+    )
+    assert torch.equal(t, torch.tensor([[1, 2, 3], [4, 5, 6]], dtype=torch.int32))
+
+    t = bitwise.tensor(
+        [
+            [
+                ["00000000000000000000000000000001_00000000000000000000000000000010"],
+                ["00000000000000000000000000000011_00000000000000000000000000000100"],
+                ["00000000000000000000000000000101_00000000000000000000000000000110"],
+            ]
+        ]
+    )
+    assert torch.equal(
+        t, torch.tensor([[[[1, 2]], [[3, 4]], [[5, 6]]]], dtype=torch.int32)
+    )
+
+    t = bitwise.tensor("11111111111111111111111111111111")
+    assert torch.equal(t, torch.tensor([-1], dtype=torch.int32))
 
 
 def test_to_str():
