@@ -8,6 +8,32 @@ TensorLiteral = list[Union[str, "TensorLiteral"]]
 _TensorIntLiteral = list[Union[int, "_TensorIntLiteral"]]
 
 
+def bitwise_or_across_batch(tensor: Tensor) -> Tensor:
+    """Computes the bitwise OR across the batch dimension of a tensor."""
+
+    # Number of bits depends on the integer type; 32 for int32
+    num_bits = 32
+
+    # Create a tensor of shifts for all bit positions: shape (num_bits, 1, 1, 1)
+    shifts = torch.arange(num_bits, device=tensor.device).view(num_bits, 1, 1, 1)
+
+    # Extract bits for all positions at once: shape (num_bits, batch_size, m, n)
+    # (tensor >> shifts) shifts each bit position, & 1 extracts the bit (0 or 1)
+    bits = ((tensor.unsqueeze(0) >> shifts) & 1).to(torch.uint8)
+
+    # Compute the OR by taking the max across the batch dimension (dim=1)
+    # If any bit is 1, the result is 1: shape (num_bits, m, n)
+    max_bits = torch.max(bits, dim=1)[0]
+
+    # Powers of 2 for reconstructing the integer: shape (num_bits, 1, 1)
+    powers = (1 << shifts).squeeze(-1).squeeze(-1).squeeze(-1)  # Shape: (num_bits,)
+
+    # Multiply bits by their corresponding powers and sum: shape (m, n)
+    result = (max_bits * powers.view(num_bits, 1, 1)).sum(dim=0, dtype=torch.int32)
+
+    return result
+
+
 def mask_rows(tensor: Tensor, mask: Tensor) -> Tensor:
     """Masks rows of a matrix based on a mask."""
 
