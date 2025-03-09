@@ -120,61 +120,55 @@ def error_projection(s: bitwise.Tensor, e: bitwise.Tensor) -> bitwise.Tensor:
     True if flipping a[i, j] changes the row activation outcome.
     Supports broadcasting when one input has shape [1, n].
     """
-    m = s.shape[0]
-    n_packed = s.shape[1]
+    # Batch and shape parameters
+    B = s.shape[0]
+    m = s.shape[1]
+    n_packed = s.shape[2]
     num_groups = e.shape[2]
     m_padded = num_groups * 32  # Align rows to multiple of 32
 
-    # Step 1: Pad s if necessary
+    # Step 1: Pad s along the row dimension if necessary (for each batch)
     if m < m_padded:
         pad_rows = m_padded - m
         s_padded = torch.cat(
-            [s, torch.zeros(pad_rows, n_packed, dtype=s.dtype, device=s.device)], dim=0
+            [s, torch.zeros(B, pad_rows, n_packed, dtype=s.dtype, device=s.device)],
+            dim=1,
         )
     else:
         s_padded = s
 
-    # Reshape s into groups of 32 rows
-    s_grouped = s_padded.view(num_groups, 32, n_packed)  # (num_groups, 32, n_packed)
+    # Reshape each batch's s into groups of 32 rows:
+    # Resulting shape: (B, num_groups, 32, n_packed)
+    s_grouped = s_padded.view(B, num_groups, 32, n_packed)
 
-    # Step 2: Unpack e into a boolean mask
+    # Step 2: Unpack e into a boolean mask.
+    # Assume e has shape (B, 1, num_groups). The following shifts out 32 bits per group.
     shifts = torch.arange(31, -1, -1, device=e.device)  # [31, 30, ..., 0]
     e_unpacked = ((e[:, 0, :, None] >> shifts) & 1).to(
         torch.bool
-    )  # (batch_size, num_groups, 32)
+    )  # (B, num_groups, 32)
+    e_unpacked_expanded = e_unpacked[..., None]  # (B, num_groups, 32, 1)
 
-    # Expand dimensions for broadcasting
-    s_grouped_expanded = s_grouped[None, :, :, :]  # (1, num_groups, 32, n_packed)
-    e_unpacked_expanded = e_unpacked[:, :, :, None]  # (batch_size, num_groups, 32, 1)
-
-    # Mask s for E=1 and E=0
+    # Step 3: Mask s based on the bit values in e.
     s_e1_masked = torch.where(
-        e_unpacked_expanded,
-        s_grouped_expanded,
-        torch.tensor(0, dtype=s.dtype, device=s.device),
+        e_unpacked_expanded, s_grouped, torch.tensor(0, dtype=s.dtype, device=s.device)
     )
     s_e0_masked = torch.where(
-        ~e_unpacked_expanded,
-        s_grouped_expanded,
-        torch.tensor(0, dtype=s.dtype, device=s.device),
+        ~e_unpacked_expanded, s_grouped, torch.tensor(0, dtype=s.dtype, device=s.device)
     )
 
-    # Step 3: Reduce within each group (dim=2)
-    or_e1_groups = _bitwise_or_reduce(
-        s_e1_masked, dim=2
-    )  # (batch_size, num_groups, n_packed)
-    or_e0_groups = _bitwise_or_reduce(
-        s_e0_masked, dim=2
-    )  # (batch_size, num_groups, n_packed)
+    # Reduce within each group (over the 32 rows)
+    or_e1_groups = _bitwise_or_reduce(s_e1_masked, dim=2)  # (B, num_groups, n_packed)
+    or_e0_groups = _bitwise_or_reduce(s_e0_masked, dim=2)  # (B, num_groups, n_packed)
 
-    # Reduce across groups (dim=1)
-    or_e1_global = _bitwise_or_reduce(or_e1_groups, dim=1)  # (batch_size, n_packed)
-    or_e0_global = _bitwise_or_reduce(or_e0_groups, dim=1)  # (batch_size, n_packed)
+    # Then reduce across groups
+    or_e1_global = _bitwise_or_reduce(or_e1_groups, dim=1)  # (B, n_packed)
+    or_e0_global = _bitwise_or_reduce(or_e0_groups, dim=1)  # (B, n_packed)
 
-    # Step 4: Compute final projection
-    e_prime_packed = or_e1_global & ~or_e0_global  # (batch_size, n_packed)
+    # Step 4: Compute the final projection.
+    e_prime_packed = or_e1_global & ~or_e0_global  # (B, n_packed)
 
-    return e_prime_packed[:, None, :]  # (batch_size, 1, n_packed)
+    return e_prime_packed[:, None, :]  # (B, 1, n_packed)
 
 
 def pick_bit_per_row(tensor: bitwise.Tensor) -> bitwise.Tensor:
