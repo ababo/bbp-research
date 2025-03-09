@@ -231,10 +231,40 @@ def pick_bit_per_row(tensor: bitwise.Tensor) -> bitwise.Tensor:
 class Layer:
     _weights: bitwise.Tensor
     _bias: bitwise.Tensor
+    _train: bool
+    _inputs: bitwise.Tensor = None
 
-    def __init__(self, weights: bitwise.Tensor, bias: bitwise.Tensor):
+    def __init__(
+        self,
+        weights: bitwise.Tensor,
+        bias: bitwise.Tensor,
+        train: bool = False,
+    ):
         self._weights = weights
         self._bias = bias
+        self._train = train
 
     def eval(self, inputs: bitwise.Tensor) -> bitwise.Tensor:
+        if self._train:
+            self._inputs = inputs
         return row_activation(inputs, self._weights).bitwise_xor_(self._bias)
+
+    def update(self, errors: bitwise.Tensor) -> bitwise.Tensor:
+        if not self._train:
+            raise ValueError("not in training mode")
+
+        sx = activation_sensitivity(self._inputs, self._weights)
+        sw = activation_sensitivity(self._weights, self._inputs)
+
+        dw = bitwise.mask_rows(sw, errors)
+        dw = pick_bit_per_row(dw)
+        dw = bitwise.bitwise_or_across_batch(dw)
+        self._weights.bitwise_xor_(dw)
+
+        db = row_activation(torch.full_like(self._inputs, fill_value=-1), sw)
+        db.bitwise_not_()
+        db.bitwise_and_(errors)
+        db = bitwise.bitwise_or_across_batch(db)
+        self._bias.bitwise_xor_(db)
+
+        return error_projection(sx, errors)
