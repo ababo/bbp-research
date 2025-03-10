@@ -1,8 +1,11 @@
 {
     "cSpell.words": [
+        "frombuffer",
         "Golbert",
         "ipykernel",
         "keepdim",
+        "matplotlib",
+        "numpy",
         "pixi",
         "pycache",
         "pytest"
