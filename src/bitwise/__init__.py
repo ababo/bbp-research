@@ -145,7 +145,7 @@ def tensor(literal: TensorLiteral, device=None) -> Tensor:
 
 def to_str(tensor: Tensor):
     """Returns a string representation of a PyTorch torch.int32 tensor in binary form."""
-    np_array = tensor.numpy().astype(np.uint32)
+    np_array = tensor.to(device="cpu").numpy().astype(np.uint32)
     np_array = np.vectorize(lambda x: f"{x:032b}")(np_array)
     np_array = np.apply_along_axis(lambda row: "_".join(row), -1, np_array)
     return str(np_array)

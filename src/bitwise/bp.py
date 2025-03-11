@@ -2,18 +2,6 @@ import bitwise
 import torch
 
 
-def row_activation(x: bitwise.Tensor, w: bitwise.Tensor) -> bitwise.Tensor:
-    """
-    Computes Row Activation.
-
-    Given x and w of shape [1, n] and [m, n], computes z where z[i] is True
-    if there exists a column j such that both x[0, j] and w[i, j] are True.
-    """
-    conjunct = torch.bitwise_and(x[:, None, :], w)
-    collapsed = conjunct.any(dim=-1)
-    return bitwise.pack(collapsed)
-
-
 def activation_sensitivity(a: bitwise.Tensor, b: bitwise.Tensor) -> bitwise.Tensor:
     """
     Computes Activation Sensitivity.
@@ -226,6 +214,32 @@ def pick_bit_per_row(tensor: bitwise.Tensor) -> bitwise.Tensor:
     result = tensor & final_mask  # Apply the final mask
 
     return result.view(shape)
+
+
+def row_activation(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """
+    Computes Row Activation.
+
+    Given x and w of shape [1, n] and [m, n], computes z where z[i] is True
+    if there exists a column j such that both x[0, j] and w[i, j] are True.
+    """
+
+    if w.dim() == 2:
+        w = w.unsqueeze(0)  # Convert (m, n) to (1, m, n)
+        conjunct = torch.bitwise_and(
+            x[:, None, :], w
+        )  # (batch_size, 1, 1, n) and (1, 1, m, n) -> (batch_size, 1, m, n)
+        collapsed = conjunct.any(dim=-1)  # (batch_size, 1, m)
+    elif w.dim() == 3:
+        conjunct = torch.bitwise_and(
+            x, w
+        )  # (batch_size, 1, n) and (batch_size, m, n) -> (batch_size, m, n)
+        collapsed = conjunct.any(dim=-1)[
+            :, None, :
+        ]  # (batch_size, m) -> (batch_size, 1, m)
+    else:
+        raise ValueError("w must have 2 or 3 dimensions")
+    return bitwise.pack(collapsed)  # (batch_size, 1, num_words)
 
 
 class Layer:
