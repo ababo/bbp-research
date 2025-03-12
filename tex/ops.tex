@@ -7,15 +7,17 @@
 \begin{document}
 
 \section{Row Activation}
-The \textbf{Row Activation} operation is defined for a Boolean row vector \( X \) of size \( 1 \times n \) and a Boolean matrix \( W \) of size \( m \times n \). It is denoted as:
+The \textbf{Row Activation} operation is defined for two Boolean matrices \( X, W \) of size \( m \times n \). It is denoted as:
 \[
-Z = \mathcal{A}(X, W)
+Z = A(X, W)
 \]
-and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:
+and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:  
 \[
-Z_{1i} = \bigvee_{j=1}^{n} \left( X_{1j} \wedge W_{ij} \right).
+Z_{1i} = \bigvee_{j=1}^{n} \left( X_{ij} \wedge W_{ij} \right).
 \]
-In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{1j} \) and \( W_{ij} \) are true.
+In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
+
+The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
 
 \section{Activation Sensitivity}
 The \textbf{Activation Sensitivity} operation is defined for two Boolean matrices \( A, B \) of size \( m \times n \). It is denoted as:
@@ -30,7 +32,7 @@ where \( A^{(ij)} \) denotes the matrix \( A \) with the element \( A_{ij} \) fl
 
 In other words, \( C_{ij} \) is true if changing \( A_{ij} \) alters the result of the \textbf{Row Activation} operation. This measures the sensitivity of each input element to the row activation output.
 
-The \textbf{Activation Sensitivity} operation can be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+Similarly to \textbf{Row Activation}, the \textbf{Activation Sensitivity} operation can be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, as before, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
 
 \section{Error Projection}
 The \textbf{Error Projection} operation is defined for a Boolean matrix \( S \) of size \( m \times n \) and a Boolean row vector \( E \) of size \( 1 \times m \). It is denoted as:
