@@ -8,6 +8,46 @@ TensorLiteral = list[Union[str, "TensorLiteral"]]
 _TensorIntLiteral = list[Union[int, "_TensorIntLiteral"]]
 
 
+def bitwise_and_across_batch(tensor: Tensor) -> Tensor:
+    """Computes the bitwise AND across the batch dimension of a tensor."""
+
+    batch_size = tensor.size(0)
+
+    # Base case: if batch_size is 1, return the single tensor
+    if batch_size == 1:
+        return tensor[0]
+
+    # Handle empty tensor (optional, depending on requirements)
+    if batch_size == 0:
+        raise ValueError("batch size must be at least 1")
+
+    # Working tensor to avoid modifying the input
+    result = tensor.clone()
+
+    # Iteratively reduce the batch by splitting and ANDing
+    while result.size(0) > 1:
+        current_batch_size = result.size(0)
+        mid = current_batch_size // 2
+
+        # Split into two parts
+        left = result[:mid]  # Shape: (mid, m, n)
+        right = result[mid:]  # Shape: (current_batch_size - mid, m, n)
+
+        # Compute bitwise AND between pairs, handling odd sizes
+        if left.size(0) == right.size(0):
+            # Even split: direct AND
+            result = torch.bitwise_and(left, right)
+        else:
+            # Odd split: AND the left part with the right part, keeping remainder in right
+            result = torch.bitwise_and(left, right[:mid])
+            # Append the remainder if it exists
+            if right.size(0) > mid:
+                result = torch.cat((result, right[mid:]), dim=0)
+
+    # Final result is the first (and only) tensor in the reduced batch
+    return result[0]
+
+
 def bitwise_or_across_batch(tensor: Tensor) -> Tensor:
     """Computes the bitwise OR across the batch dimension of a tensor."""
 
