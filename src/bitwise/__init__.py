@@ -11,27 +11,41 @@ _TensorIntLiteral = list[Union[int, "_TensorIntLiteral"]]
 def bitwise_or_across_batch(tensor: Tensor) -> Tensor:
     """Computes the bitwise OR across the batch dimension of a tensor."""
 
-    # Number of bits depends on the integer type; 32 for int32
-    num_bits = 32
+    batch_size = tensor.size(0)
 
-    # Create a tensor of shifts for all bit positions: shape (num_bits, 1, 1, 1)
-    shifts = torch.arange(num_bits, device=tensor.device).view(num_bits, 1, 1, 1)
+    # Base case: if batch_size is 1, return the single tensor
+    if batch_size == 1:
+        return tensor[0]
 
-    # Extract bits for all positions at once: shape (num_bits, batch_size, m, n)
-    # (tensor >> shifts) shifts each bit position, & 1 extracts the bit (0 or 1)
-    bits = ((tensor.unsqueeze(0) >> shifts) & 1).to(torch.uint8)
+    # Handle empty tensor (optional, depending on requirements)
+    if batch_size == 0:
+        raise ValueError("batch size must be at least 1")
 
-    # Compute the OR by taking the max across the batch dimension (dim=1)
-    # If any bit is 1, the result is 1: shape (num_bits, m, n)
-    max_bits = torch.max(bits, dim=1)[0]
+    # Working tensor to avoid modifying the input
+    result = tensor.clone()
 
-    # Powers of 2 for reconstructing the integer: shape (num_bits, 1, 1)
-    powers = (1 << shifts).squeeze(-1).squeeze(-1).squeeze(-1)  # Shape: (num_bits,)
+    # Iteratively reduce the batch by splitting and ORing
+    while result.size(0) > 1:
+        current_batch_size = result.size(0)
+        mid = current_batch_size // 2
 
-    # Multiply bits by their corresponding powers and sum: shape (m, n)
-    result = (max_bits * powers.view(num_bits, 1, 1)).sum(dim=0, dtype=torch.int32)
+        # Split into two parts
+        left = result[:mid]  # Shape: (mid, m, n)
+        right = result[mid:]  # Shape: (current_batch_size - mid, m, n)
 
-    return result
+        # Compute bitwise OR between pairs, handling odd sizes
+        if left.size(0) == right.size(0):
+            # Even split: direct OR
+            result = torch.bitwise_or(left, right)
+        else:
+            # Odd split: OR the left part with the right part, keeping remainder in right
+            result = torch.bitwise_or(left, right[:mid])
+            # Append the remainder if it exists
+            if right.size(0) > mid:
+                result = torch.cat((result, right[mid:]), dim=0)
+
+    # Final result is the first (and only) tensor in the reduced batch
+    return result[0]
 
 
 def mask_rows(tensor: Tensor, mask: Tensor) -> Tensor:
