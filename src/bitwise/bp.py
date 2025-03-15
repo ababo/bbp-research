@@ -168,52 +168,49 @@ def pick_bit_per_row(tensor: bitwise.Tensor) -> bitwise.Tensor:
     all other bits zeroed. Rows with no active bits remain zero.
     """
 
-    bits = 32
-    shape = tensor.shape
-    tensor = tensor.view(-1, shape[-1])  # Flatten all except the last dimension
+    original_shape = tensor.shape
+    tensor = tensor.view(-1, original_shape[-1])
+    batch, _ = tensor.shape
 
-    # Convert each int32 value into a 32-bit binary representation
-    bit_masks = (
-        tensor.unsqueeze(-1) >> torch.arange(bits, device=tensor.device)
-    ) & 1  # (batch, cols, 32)
+    # Compute bitwise OR across columns for each row
+    def bitwise_or_reduce(t, dim):
+        result = torch.zeros(
+            t.shape[:dim] + t.shape[dim + 1 :], dtype=t.dtype, device=t.device
+        )
+        for i in range(t.size(dim)):
+            result = torch.bitwise_or(result, t.select(dim, i))
+        return result
 
-    # Compute which bits are set at least once per row
-    row_bit_presence = bit_masks.any(
-        dim=1
-    )  # (batch, 32) - True if the bit is set in any column
+    row_or = bitwise_or_reduce(tensor, dim=1)
 
-    # Generate a random choice for each row, selecting one bit from the active ones
-    rand_values = torch.rand_like(row_bit_presence.float())
-    rand_values[~row_bit_presence] = -1  # Ignore unset bits
-    selected_bit = rand_values.argmax(
-        dim=-1
-    )  # (batch,) - Index of the chosen bit per row
+    # Identify set bits in each row
+    bit_positions = torch.arange(32, device=tensor.device)
+    set_bits = (row_or.unsqueeze(-1) & (1 << bit_positions)) != 0
+    num_set_bits = set_bits.sum(dim=-1)
+    set_bits_float = set_bits.float()
 
-    # Convert selected bit index to a bit mask
-    selected_mask = (
-        (1 << selected_bit).unsqueeze(-1).to(torch.int32)
-    )  # Ensure correct dtype
+    # Select one bit per row randomly
+    valid_rows = num_set_bits > 0
+    selected_bit = torch.zeros(batch, dtype=torch.long, device=tensor.device)
+    selected_bit[valid_rows] = torch.multinomial(
+        set_bits_float[valid_rows], num_samples=1
+    ).squeeze(-1)
+    selected_mask = (1 << selected_bit).to(torch.int32)
 
-    # Identify which elements originally had this selected bit
-    valid_positions = (tensor & selected_mask).bool()
-
-    # Randomly select **one** column per row where the selected bit exists
+    # Identify columns where the selected bit is set
+    valid_positions = (tensor & selected_mask.unsqueeze(-1)) != 0
     valid_positions_float = valid_positions.float()
-    rand_col_selector = torch.rand_like(
-        valid_positions_float
-    )  # Generate random values for tie-breaking
-    rand_col_selector[~valid_positions] = -1  # Ignore invalid positions
+    rand_col_selector = torch.rand_like(valid_positions_float)
+    rand_col_selector[~valid_positions] = -1
+    selected_col = rand_col_selector.argmax(dim=-1, keepdim=True)
 
-    selected_col = rand_col_selector.argmax(dim=-1, keepdim=True)  # (batch, 1)
-
-    # Construct final mask: only one element in each row should keep the selected bit
+    # Construct the final mask
     final_mask = torch.zeros_like(tensor, dtype=torch.int32)
-    src = selected_mask.expand_as(final_mask)  # Expand selected bit mask to match shape
-    final_mask.scatter_(dim=-1, index=selected_col, src=src)  # Scatter the bit mask
+    final_mask.scatter_(dim=-1, index=selected_col, src=selected_mask.unsqueeze(-1))
 
-    result = tensor & final_mask  # Apply the final mask
-
-    return result.view(shape)
+    # Apply the mask
+    result = tensor & final_mask
+    return result.view(original_shape)
 
 
 def row_activation(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:

@@ -5,6 +5,7 @@
         "ipykernel",
         "keepdim",
         "matplotlib",
+        "multinomial",
         "numpy",
         "pixi",
         "pycache",
