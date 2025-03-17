@@ -261,21 +261,24 @@ class Layer:
         return row_activation(inputs, self._weights).bitwise_xor_(self._bias)
 
     def update(self, errors: bitwise.Tensor) -> bitwise.Tensor:
-        if not self._train:
-            raise ValueError("not in training mode")
+        if self._inputs is None:
+            raise ValueError("no previous inputs saved")
 
-        sx = activation_sensitivity(self._inputs, self._weights)
         sw = activation_sensitivity(self._weights, self._inputs)
-
-        dw = bitwise.mask_rows(sw, errors)
-        dw = pick_bit_per_row(dw)
-        dw = bitwise.bitwise_or_across_batch(dw)
+        dwp = bitwise.mask_rows(sw, errors)
+        dwp = bitwise.bitwise_or_across_batch(dwp)
+        dwm = bitwise.mask_rows(sw, errors.bitwise_not())
+        dwm = bitwise.bitwise_or_across_batch(dwm)
+        dw = dwp.bitwise_and_(dwm.bitwise_not_())
+        dw = pick_bit_per_row(dw.unsqueeze_(0))[0]
         self._weights.bitwise_xor_(dw)
 
-        db = row_activation(torch.full_like(self._inputs, fill_value=-1), sw)
-        db.bitwise_not_()
-        db.bitwise_and_(errors)
-        db = bitwise.bitwise_or_across_batch(db)
+        ones = torch.full_like(self._inputs, fill_value=-1)
+        errors.bitwise_and_(row_activation(ones, dw).bitwise_not_())
+
+        db = bitwise.bitwise_and_across_batch(errors)
         self._bias.bitwise_xor_(db)
 
+        sx = activation_sensitivity(self._inputs, self._weights)
+        errors.bitwise_and_(db.bitwise_not_())
         return error_projection(sx, errors)
