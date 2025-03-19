@@ -3,6 +3,29 @@ import pytest
 import torch
 
 
+def test_bit_count_map():
+    batch = bitwise.tensor(
+        [
+            [
+                "01110111011100000100001111010101_00001110100111001101101001101101",
+                "01110111011100000110001111110101_00001110100111001101101001101101",
+            ],
+            [
+                "01110111011101100100001111010101_10101110100111001101101001101101",
+                "01110111011100000100001111011101_11001110101111111101101001101101",
+            ],
+        ]
+    )
+
+    result = bitwise.bit_count_map(batch)
+
+    expected = torch.tensor(
+        [[[17, 17], [19, 17]], [[19, 19], [18, 22]]], dtype=torch.int32
+    )
+
+    assert torch.equal(result, expected)
+
+
 def test_bitwise_and_across_batch():
     batch = bitwise.tensor(
         [

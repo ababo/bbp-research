@@ -8,6 +8,22 @@ TensorLiteral = list[Union[str, "TensorLiteral"]]
 _TensorIntLiteral = list[Union[int, "_TensorIntLiteral"]]
 
 
+def bit_count_map(tensor: Tensor) -> torch.Tensor:
+    """Maps tensor int32 elements into counts of their set bits."""
+
+    # Count set bits using Hamming weight algorithm.
+    x = tensor.clone()
+    x += -((x >> 1) & 0x55555555)
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333)
+    x += x >> 4
+    x &= 0x0F0F0F0F
+    x += x >> 8
+    x += x >> 16
+    x &= 0x3F
+
+    return x
+
+
 def bitwise_and_across_batch(tensor: Tensor) -> Tensor:
     """Computes the bitwise AND across the batch dimension of a tensor."""
 
