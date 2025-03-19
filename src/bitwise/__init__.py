@@ -104,6 +104,33 @@ def bitwise_or_across_batch(tensor: Tensor) -> Tensor:
     return result[0]
 
 
+def identity_matrix(m: int, n: int) -> Tensor:
+    """Creates an identity-like matrix for a given hight and width."""
+
+    # Number of int32 elements needed to store n bits
+    num_elts = (n + 31) // 32
+
+    # Initialize tensor with zeros, using torch.int32
+    tensor = torch.zeros((m, num_elts), dtype=torch.int32)
+
+    # Compute row indices and bit positions, keeping indices as int64 for indexing
+    row_indices = torch.arange(m, dtype=torch.int64)  # Shape: (m,)
+    k = row_indices % n  # Bit position in logical range, Shape: (m,)
+    elt_idx = k // 32  # Index of the int32 element, Shape: (m,)
+    bit_pos = 31 - (k % 32)  # Bit position within int32, Shape: (m,)
+
+    # Convert bit_pos to int32 for the shift operation
+    bit_pos_int32 = bit_pos.to(torch.int32)
+
+    # Compute bit values directly in int32, avoiding int64
+    values = torch.ones(m, dtype=torch.int32) << bit_pos_int32
+
+    # Assign values to the tensor using advanced indexing
+    tensor[row_indices, elt_idx] = values
+
+    return tensor
+
+
 def mask_rows(tensor: Tensor, mask: Tensor) -> Tensor:
     """Masks rows of a matrix based on a mask."""
 
