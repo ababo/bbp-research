@@ -1,3 +1,5 @@
+from typing import List
+
 import bitwise
 import torch
 
@@ -240,27 +242,35 @@ def row_activation(x: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
 
 
 class Layer:
+    """Represents a fully-connected layer."""
+
     _weights: bitwise.Tensor
-    _bias: bitwise.Tensor
+    _biases: bitwise.Tensor
     _train: bool
     _inputs: bitwise.Tensor = None
 
     def __init__(
         self,
         weights: bitwise.Tensor,
-        bias: bitwise.Tensor,
+        biases: bitwise.Tensor,
         train: bool = False,
     ):
+        """Creates a fully-connected layer for the given weights and biases."""
+
         self._weights = weights
-        self._bias = bias
+        self._biases = biases
         self._train = train
 
     def eval(self, inputs: bitwise.Tensor) -> bitwise.Tensor:
+        """Computes output for the given inputs."""
+
         if self._train:
             self._inputs = inputs
-        return row_activation(inputs, self._weights).bitwise_xor_(self._bias)
+        return row_activation(inputs, self._weights).bitwise_xor_(self._biases)
 
     def update(self, errors: bitwise.Tensor) -> bitwise.Tensor:
+        """Performs backpropagation, updates parameters, and returns estimated input errors."""
+
         if self._inputs is None:
             raise ValueError("no previous inputs saved")
 
@@ -277,8 +287,54 @@ class Layer:
         errors.bitwise_and_(row_activation(ones, dw).bitwise_not_())
 
         db = bitwise.bitwise_and_across_batch(errors)
-        self._bias.bitwise_xor_(db)
+        self._biases.bitwise_xor_(db)
 
         sx = activation_sensitivity(self._inputs, self._weights)
         errors.bitwise_and_(db.bitwise_not_())
         return error_projection(sx, errors)
+
+
+class Model:
+    """Represents a simple multi-layer model."""
+
+    _layers: List[Layer]
+
+    def __init__(self, layers: List[Layer]):
+        """Creates a model for the given layers."""
+
+        self._layers = layers
+
+    def eval(self, inputs: torch.Tensor) -> bitwise.Tensor:
+        """Performs an inference for the given inputs."""
+
+        outputs = inputs
+        for layer in self._layers:
+            outputs = layer.eval(outputs)
+        return outputs
+
+    def update(self, errors: bitwise.Tensor):
+        """Performs a backpropagation pass and updates the layer parameters."""
+
+        for i, layer in zip(
+            range(len(self._layers) - 1, -1, -1), reversed(self._layers)
+        ):
+            errors = layer.update(errors)
+            if torch.all(errors == 0) and i > 0:
+                print(f"warning: no error propagated to layer {i}")
+                break
+
+
+def untrained_model(layer_widths: List[int], device="cpu") -> Model:
+    """Creates an untrained fully-connected model with the given layer widths."""
+
+    layers = []
+
+    for ins, outs in list(zip(layer_widths, layer_widths[1:])):
+        weights = bitwise.identity_matrix(outs, ins).to(device=device)
+        bias = torch.randint(
+            -(2**31), 2**31, (1, (outs + 31) // 32), device=device, dtype=torch.int32
+        )
+        layer = Layer(weights, bias, train=True)
+        layers.append(layer)
+
+    return Model(layers)
