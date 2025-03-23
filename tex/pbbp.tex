@@ -1,0 +1,49 @@
+\documentclass{article}
+
+% Optional: Packages for better formatting
+\usepackage{amsmath, amssymb}  % Math symbols
+\usepackage{graphicx}          % Images
+\usepackage{hyperref}          % Clickable links
+
+\title{Practical Boolean Backpropagation}
+\author{Simon Golbert}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    Boolean neural networks offer hardware-efficient alternatives to real-valued models. While quantization is common, purely Boolean training remains underexplored. We present a practical method for purely Boolean backpropagation for networks based on a single specific gate we chose, operating directly in Boolean algebra involving no numerics. Initial experiments confirm its feasibility.
+\end{abstract}
+
+\section{Introduction}
+    To reduce the computational complexity and memory requirements of ANN models, various quantization techniques are widely used today. Floating-point numbers are typically reduced to 16-, 8-, or 4-bit representations. This technique allows preserving the traditional gradient-based optimization of a differentiable loss function through backpropagation.
+    
+    More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values {-1, 0, 1}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving maximum inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
+
+    
+
+\section{Methods}
+Describe the methodology, data, and tools used.
+
+\section{Results}
+Present findings with figures, tables, or equations.
+
+\section{Discussion}
+Interpret results, compare with previous work, and explain implications.
+
+\section{Conclusion}
+Summarize the key points and suggest future directions.
+
+\begin{thebibliography}{9}
+
+\bibitem{ma2024}
+Shuming Ma, Hongyu Wang, Lingxiao Ma, Lei Wang, Wenhui Wang, Shaohan Huang, Li Dong, Ruiping Wang, Jilong Xue, Furu Wei, \textit{The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits}, arXiv, 2024.
+
+\bibitem{rastegari2016}
+Mohammad Rastegari, Vicente Ordonez, Joseph Redmon, Ali Farhadi, \textit{XNOR-Net: ImageNet Classification Using Binary Convolutional Neural Networks}, arXiv, 2016.
+
+\end{thebibliography}
+
+\end{document}

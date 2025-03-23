@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "Backpropagation",
+        "convolutional",
         "frombuffer",
         "Golbert",
         "ipykernel",
@@ -11,7 +12,8 @@
         "pixi",
         "pycache",
         "pytest",
-        "underexplored"
+        "underexplored",
+        "XNOR"
     ],
     "latex-workshop.latex.outDir": "build",
     "python.analysis.extraPaths": [
