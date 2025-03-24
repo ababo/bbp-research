@@ -20,9 +20,11 @@
 \section{Introduction}
     To reduce the computational complexity and memory requirements of ANN models, various quantization techniques are widely used today. Floating-point numbers are typically reduced to 16-, 8-, or 4-bit representations. This technique allows preserving the traditional gradient-based optimization of a differentiable loss function through backpropagation.
     
-    More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values {-1, 0, 1}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving maximum inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
+    More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values {-1, 0, 1}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving very descent inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
 
-    
+    To maximize efficiency in both model training and inference, we should consider a methodology based on purely Boolean computations. This approach has the potential to leverage existing hardware for massive parallelism while also opening avenues for developing specialized, cost-effective, and energy-efficient hardware optimized for bitwise operations. While not yet a definitive solution, exploring this direction could lead to significant advancements in high-performance computing.
+
+    In this article, we will define a composite Boolean gate to serve as a neuron in Boolean artificial neural networks (ANNs). Additionally, we will derive an error backpropagation routine to enable training. Finally, we will discuss practical aspects of the proof-of-concept (PoC) implementation and share key observations from our experiments.
 
 \section{Methods}
 Describe the methodology, data, and tools used.
