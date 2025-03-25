@@ -318,10 +318,10 @@ class Model:
         for i, layer in zip(
             range(len(self._layers) - 1, -1, -1), reversed(self._layers)
         ):
-            errors = layer.update(errors)
-            if torch.all(errors == 0) and i > 0:
+            if torch.all(errors == 0):
                 print(f"warning: no error propagated to layer {i}")
                 break
+            errors = layer.update(errors)
 
 
 def untrained_model(layer_widths: List[int], device="cpu") -> Model:
@@ -331,10 +331,10 @@ def untrained_model(layer_widths: List[int], device="cpu") -> Model:
 
     for ins, outs in list(zip(layer_widths, layer_widths[1:])):
         weights = bitwise.identity_matrix(outs, ins).to(device=device)
-        bias = torch.randint(
+        biases = torch.randint(
             -(2**31), 2**31, (1, (outs + 31) // 32), device=device, dtype=torch.int32
         )
-        layer = Layer(weights, bias, train=True)
+        layer = Layer(weights, biases, train=True)
         layers.append(layer)
 
     return Model(layers)
