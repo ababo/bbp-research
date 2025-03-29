@@ -1,13 +1,13 @@
 \documentclass{article}
 
-% Optional: Packages for better formatting
-\usepackage{amsmath, amssymb}  % Math symbols
-\usepackage{graphicx}          % Images
-\usepackage{hyperref}          % Clickable links
+\usepackage{amsmath, hyperref}
 
 \title{Practical Boolean Backpropagation}
 \author{Simon Golbert}
 \date{\today}
+
+\setlength{\parskip}{5pt}
+\linespread{1.1}
 
 \begin{document}
 
@@ -18,16 +18,43 @@
 \end{abstract}
 
 \section{Introduction}
-    To reduce the computational complexity and memory requirements of ANN models, various quantization techniques are widely used today. Floating-point numbers are typically reduced to 16-, 8-, or 4-bit representations. This technique allows preserving the traditional gradient-based optimization of a differentiable loss function through backpropagation.
-    
-    More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values {-1, 0, 1}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving very descent inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
+To reduce the computational complexity and memory requirements of models, various quantization techniques are widely used today. Floating-point numbers are typically reduced to 16-, 8-, or 4-bit representations. This technique allows preserving the traditional gradient-based optimization of a differentiable loss function through backpropagation.
 
-    To maximize efficiency in both model training and inference, we should consider a methodology based on purely Boolean computations. This approach has the potential to leverage existing hardware for massive parallelism while also opening avenues for developing specialized, cost-effective, and energy-efficient hardware optimized for bitwise operations. While not yet a definitive solution, exploring this direction could lead to significant advancements in high-performance computing.
+More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values {-1, 0, 1}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving very descent inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
 
-    In this article, we will define a composite Boolean gate to serve as a neuron in Boolean artificial neural networks (ANNs). Additionally, we will derive an error backpropagation routine to enable training. Finally, we will discuss practical aspects of the proof-of-concept (PoC) implementation and share key observations from our experiments.
+To maximize efficiency in both model training and inference, we should consider a methodology based on purely Boolean computations. This approach has the potential to leverage existing hardware for massive parallelism while also opening avenues for developing specialized, cost-effective, and energy-efficient hardware optimized for bitwise operations. While not yet a definitive solution, exploring this direction could lead to significant advancements in high-performance computing.
 
-\section{Methods}
-Describe the methodology, data, and tools used.
+In this article, we will define a composite Boolean gate to serve as a neuron in Boolean artificial neural networks (ANNs). Additionally, we will derive an error backpropagation routine to enable training. Finally, we will discuss practical aspects of the proof-of-concept (PoC) implementation and share key observations from our experiments.
+
+\section{Model Structure}
+Let's define the gate function, the related \textbf{Row Activation} operation, and the inference process for a simple model composed of fully connected layers.
+
+\subsection{Gate Function}
+This research is focused on utilizing the following composite gate as a neuron function:
+\[ y = \bigvee_{i} \left( x_{i} \wedge w_{i} \right) \oplus b \]
+
+Here \(x_{i}\) are the argument values, \(w_{i}\) and \(b\) are parameter values that are learned during training.
+
+It's easy to see that the gate above is complete. Indeed we can  express the OR, AND, and NOT gates using this gate:
+\[ NOT(x) = \left( x \wedge 1 \right) \oplus 1 \]
+\[ OR(x_1, x_2) = \left(\left( x_1 \wedge 1 \right) \vee \left( x_2 \wedge 1 \right) \right) \oplus 0 \]
+\[ AND(x_1, x_2) = \left(\left( NOT(x_1) \wedge 1 \right) \vee \left( NOT(x_2) \wedge 1 \right) \right) \oplus 1 \]
+
+\subsection{Row Activation}
+Let's define a \textbf{Row Activation} operation, which will help us express model inference in matrix form. It is defined for two Boolean matrices X and W of size \( m \times n \), denoted as:
+\[ Z = \mathcal{A}(X, W) \]
+and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:
+\[ Z_{1i} = \bigvee_{j=1}^{n} \left( X_{ij} \wedge W_{ij} \right). \]
+
+In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
+
+The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+
+\subsection{Fully Connected Layer}
+Now we can define a fully connected layer as \( (W, B) \), where \( W \) is a matrix of "weights" and \( B \) is a vector of "biases". For the input vector X, the output of the layer is computed as:
+\[ Y = \mathcal{A}(X, W) \oplus B \]
+
+A simple model can be represented as a series of such layers, where during inference, the output of the \( i \)-th layer serves as the input to the \( (i+1) \)-th layer.
 
 \section{Results}
 Present findings with figures, tables, or equations.
@@ -40,11 +67,11 @@ Summarize the key points and suggest future directions.
 
 \begin{thebibliography}{9}
 
-\bibitem{ma2024}
-Shuming Ma, Hongyu Wang, Lingxiao Ma, Lei Wang, Wenhui Wang, Shaohan Huang, Li Dong, Ruiping Wang, Jilong Xue, Furu Wei, \textit{The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits}, arXiv, 2024.
+    \bibitem{ma2024}
+    Shuming Ma, Hongyu Wang, Lingxiao Ma, Lei Wang, Wenhui Wang, Shaohan Huang, Li Dong, Ruiping Wang, Jilong Xue, Furu Wei, \textit{The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits}, arXiv, 2024.
 
-\bibitem{rastegari2016}
-Mohammad Rastegari, Vicente Ordonez, Joseph Redmon, Ali Farhadi, \textit{XNOR-Net: ImageNet Classification Using Binary Convolutional Neural Networks}, arXiv, 2016.
+    \bibitem{rastegari2016}
+    Mohammad Rastegari, Vicente Ordonez, Joseph Redmon, Ali Farhadi, \textit{XNOR-Net: ImageNet Classification Using Binary Convolutional Neural Networks}, arXiv, 2016.
 
 \end{thebibliography}
 
