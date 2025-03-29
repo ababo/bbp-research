@@ -1,6 +1,6 @@
 \documentclass{article}
 
-\usepackage{amsmath, hyperref}
+\usepackage{amsmath, amsthm, hyperref}
 
 \title{Practical Boolean Backpropagation}
 \author{Simon Golbert}
@@ -8,6 +8,9 @@
 
 \setlength{\parskip}{5pt}
 \linespread{1.1}
+
+\theoremstyle{definition}
+\newtheorem*{definition}{Definition}
 
 \begin{document}
 
@@ -27,7 +30,7 @@ To maximize efficiency in both model training and inference, we should consider 
 In this article, we will define a composite Boolean gate to serve as a neuron in Boolean artificial neural networks (ANNs). Additionally, we will derive an error backpropagation routine to enable training. Finally, we will discuss practical aspects of the proof-of-concept (PoC) implementation and share key observations from our experiments.
 
 \section{Model Structure}
-Let's define the gate function, the related \textbf{Row Activation} operation, and the inference process for a simple model composed of fully connected layers.
+We define the gate function, the related \textbf{Row Activation} operation, and the inference process for a simple model composed of fully connected layers.
 
 \subsection{Gate Function}
 This research is focused on utilizing the following composite gate as a neuron function:
@@ -35,29 +38,94 @@ This research is focused on utilizing the following composite gate as a neuron f
 
 Here \(x_{i}\) are the argument values, \(w_{i}\) and \(b\) are parameter values that are learned during training.
 
+\textit{Note: To save space, from now on, we will use 1 instead of True and 0 instead of False to represent the Boolean values throughout the document.}
+
 It's easy to see that the gate above is complete. Indeed we can  express the OR, AND, and NOT gates using this gate:
 \[ NOT(x) = \left( x \wedge 1 \right) \oplus 1 \]
 \[ OR(x_1, x_2) = \left(\left( x_1 \wedge 1 \right) \vee \left( x_2 \wedge 1 \right) \right) \oplus 0 \]
 \[ AND(x_1, x_2) = \left(\left( NOT(x_1) \wedge 1 \right) \vee \left( NOT(x_2) \wedge 1 \right) \right) \oplus 1 \]
 
 \subsection{Row Activation}
-Let's define a \textbf{Row Activation} operation, which will help us express model inference in matrix form. It is defined for two Boolean matrices X and W of size \( m \times n \), denoted as:
-\[ Z = \mathcal{A}(X, W) \]
-and produces a \( 1 \times m \) Boolean row vector \( Z \), where each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:
-\[ Z_{1i} = \bigvee_{j=1}^{n} \left( X_{ij} \wedge W_{ij} \right). \]
+In order to express model inference in matrix form using the gate function defined above, we introduce the following operation.
 
-In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
+\begin{definition}
+    \textbf{Row Activation} is an operation that is defined for two Boolean matrices X and W of size \( m \times n \), denoted as:
+    \[ Z = \mathcal{A}(X, W) \]
+    and produces a \( 1 \times m \) Boolean row vector \( Z \). Each element \( Z_{1i} \) (for \( i = 1, 2, \dots, m \)) is computed as:
+    \[ Z_{1i} = \bigvee_{j=1}^{n} \left( X_{ij} \wedge W_{ij} \right). \]
 
-The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+    In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
+
+    The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+\end{definition}
 
 \subsection{Fully Connected Layer}
 Now we can define a fully connected layer as \( (W, B) \), where \( W \) is a matrix of "weights" and \( B \) is a vector of "biases". For the input vector X, the output of the layer is computed as:
 \[ Y = \mathcal{A}(X, W) \oplus B \]
 
+Here, \( B \) is a \( 1 \times m \) Boolean row vector that selectively inverts elements of the \textbf{Row Activation} output via elementwise XOR.
+
 A simple model can be represented as a series of such layers, where during inference, the output of the \( i \)-th layer serves as the input to the \( (i+1) \)-th layer.
 
-\section{Results}
-Present findings with figures, tables, or equations.
+\section{Model Training}
+In this section, we introduce key definitions that will aid in outlining a training process, which conceptually resembles traditional error backpropagation.
+
+\subsection{Activation Sensitivity}
+To direct the training process, we need to determine which elements contribute to the final result and which do not. This concept is similar to the gradient in traditional training, but instead of quantifying influence, Boolean values indicate whether a change in an element flips the final output.
+
+For instance, consider the following \textbf{Row Activation} application:
+
+\[
+    X = \begin{bmatrix} 1 & 0 & 1 & 0 \end{bmatrix},\quad
+    W = \begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \end{bmatrix},\quad
+    Z = \mathcal{A}\left( X, W \right) = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+\]
+
+Now, examine which elements of \( X \) need to be flipped to change each element of the result. It is evident that flipping any element of \( X \) cannot affect \( Z_{1,1} \), since \( W_1 \) is zeroed. Flipping \( X_2 \) or \( X_4 \) can change \( Z_2 \) from 0 to 1. To change \( Z_3 \) from 1 to 0, both \( X_1 \) and \( X_3 \) must be flipped.
+
+An important observation that can be distilled from the example above is that flipping a resulting element from 0 to 1 requires flipping \textbf{any} of the relevant argument elements, while flipping a resulting element from 1 to 0 requires flipping \textbf{all} of the relevant arguments.
+
+Now we can define operations that determine such "sensitive" elements.
+
+\begin{definition}
+    For given Boolean matrices \( A \) and \( B \) of size \( m \times n \), and \( Z = \mathcal{A}(A, B) \) the \textbf{Positive Activation Sensitivity} operation, denoted as
+    \[
+        S = \mathcal{S}^+(A, B),
+    \]
+    produces a matrix \( S \) of the same size, where each element \( S_{i,j} \) is defined as:
+
+    \[
+        S_{i,j} =
+        \begin{cases}
+            1, & \text{if } Z_{1,i} = 0 \text{ and setting } A_{i,j} = 1 \text{ causes } Z_{1,i} \text{ to flip to } 1, \\
+            0, & \text{otherwise}.
+        \end{cases}
+    \]
+    The \textbf{Negative Activation Sensitivity} operation, denoted as
+    \[
+        S = \mathcal{S}^-(A, B),
+    \]
+    produces a matrix \( S \) of the same size, where each element \( S_{i,j} \) is defined as:
+
+    \[
+        S_{i,j} =
+        \begin{cases}
+            1, & \text{if } Z_{1,i} = 1 \text{ and setting } A_{i,j} = 0 \text{ is necessary for } Z_{1,i} \text{ to flip to }  0, \\
+            0, & \text{otherwise}.
+        \end{cases}
+    \]
+    The \textbf{Activation Sensitivity} operation is defined as
+    \[
+        \mathcal{S}(A, B) = \mathcal{S}^+(A, B) \vee \mathcal{S}^-(A, B)
+    \]
+    The operations above can also be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+\end{definition}
+
+In the example above:
+\[
+    \mathcal{S}(X, W) = \begin{bmatrix} 0 & 0 & 0 & 0 \\ 0 & 1 & 0 & 1 \\ 1 & 0 & 1 & 0 \end{bmatrix},\quad
+    \mathcal{S}(W, X) = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 1 & 0 & 1 & 0 \\ 1 & 0 & 1 & 0 \end{bmatrix},
+\]
 
 \section{Discussion}
 Interpret results, compare with previous work, and explain implications.
