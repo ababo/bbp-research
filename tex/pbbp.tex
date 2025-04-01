@@ -141,7 +141,7 @@ Consider a single fully connected layer trained on Boolean input vectors \( X_1,
 
 Our aim is to find \( D_w \) that minimizes the total Hamming weight (i.e., the number of 1s) in all the errors for subsequent inference after applying \( W' = W \oplus D_w \). Since each row \( W_i \) is processed independently of the others during inference, this task can clearly be reduced to a single row.
 
-For a given i, assume we have all minimal difference masks \( D_k \) for each \( k \) that flip \( Y_{k,1,i} \) when using \( X_{k,1,i} \oplus D_k \) instead of \( X_{k,1,i} \). Now, let us construct two matrices by concatenating \( D_k \) as rows: \( V \) for indices where \( E_{k,1,i} = 0 \) and \( I \) for output vectors where \( E_{k,1,i} = 1 \). To construct a proper \( D_{w,i} \), we need to apply as many \( I \)-rows as possible to flip "bad" outputs while ensuring that \( V \)-rows are not activated, as their activation flips "good" outputs to "bad."
+For a given i, assume we have all minimal difference masks \( D_k \) for each \( k \) that flip \( Y_{k,1,i} \) when using \( X_{k,1,i} \oplus D_k \) instead of \( X_{k,1,i} \). Now, let us construct two matrices by concatenating \( D_k \) as rows: \( C \) for indices where \( E_{k,1,i} = 0 \) and \( I \) for output vectors where \( E_{k,1,i} = 1 \). To construct a proper \( D_{w,i} \), we need to apply as many \( I \)-rows as possible to flip incorrect outputs while ensuring that \( C \)-rows are not activated, as their activation "spoils" correct outputs.
 
 Here is a concrete example. Assume we have:
 \[
@@ -149,36 +149,46 @@ Here is a concrete example. Assume we have:
         1 & 0 & 0 & 1 & 0 & 1 \\
         0 & 1 & 1 & 0 & 1 & 0 \\
         0 & 0 & 1 & 0 & 0 & 1
-    \end{bmatrix}
+    \end{bmatrix},
+    \quad
+    B = \begin{bmatrix}0 & 1 & 0 \end{bmatrix}
+\]
+
+\[
+    \begin{aligned}
+        X_1 & = \begin{bmatrix} 1 & 1 & 0 & 1 & 0 & 1 \end{bmatrix}, \\
+        X_2 & = \begin{bmatrix} 0 & 0 & 1 & 0 & 0 & 0 \end{bmatrix}, \\
+        X_3 & = \begin{bmatrix} 0 & 0 & 0 & 0 & 0 & 1 \end{bmatrix}, \\
+    \end{aligned}
     \quad
     \begin{aligned}
-        X_1 & = \begin{bmatrix} 1 & 1 & 0 & 1 & 0 & 1 \end{bmatrix} \\
-        X_2 & = \begin{bmatrix} 0 & 0 & 1 & 0 & 0 & 0 \end{bmatrix} \\
-        X_3 & = \begin{bmatrix} 0 & 0 & 0 & 0 & 0 & 1 \end{bmatrix} \\
+        Y^e_1 = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix} \\
+        Y^e_2 = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix} \\
+        Y^e_3 = \begin{bmatrix} 1 & 1 & 0 \end{bmatrix} \\
     \end{aligned}
-\]
-\[
-    Y^e_1 = \begin{bmatrix} 1 & 0 & 1 \end{bmatrix},\quad
-    Y^e_2 = \begin{bmatrix} 1 & 1 & 0 \end{bmatrix},\quad
-    Y^e_3 = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}
 \]
 
 First, we compute outputs and errors:
 \[
-    Y_1 = \begin{bmatrix} 1 & 1 & 0 \end{bmatrix},\quad
-    Y_2 = \begin{bmatrix} 0 & 1 & 1 \end{bmatrix},\quad
-    Y_3 = \begin{bmatrix} 1 & 0 & 1 \end{bmatrix}
-\]
-\[
-    E_1 = \begin{bmatrix} 0 & 1 & 1 \end{bmatrix},\quad
-    E_2 = \begin{bmatrix} 1 & 0 & 1 \end{bmatrix},\quad
-    E_3 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}
+    \begin{aligned}
+        Y_1 = \begin{bmatrix} 1 & 0 & 0 \end{bmatrix}, \\
+        Y_2 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix}, \\
+        Y_3 = \begin{bmatrix} 1 & 1 & 1 \end{bmatrix}, \\
+    \end{aligned}
+    \quad
+    \begin{aligned}
+        E_1 = \begin{bmatrix} 0 & 1 & 1 \end{bmatrix} \\
+        E_2 = \begin{bmatrix} 1 & 0 & 1 \end{bmatrix} \\
+        E_3 = \begin{bmatrix} 0 & 0 & 1 \end{bmatrix} \\
+    \end{aligned}
 \]
 
 Now we select the first element of the outputs to derive \( Dw_1 \) without loss of generality, as the remaining \( Dw_2 \) and \( Dw_3 \) can be obtained in the same manner.
 
+It is easy to see that the minimal difference masks can be derived by selecting individual bits from the rows of the \textbf{Positive Activation Sensitivity} matrix or by taking entire rows from the \textbf{Negative Activation Sensitivity} matrix, depending on the corresponding \textbf{Row Activation} output values.
+
 \[
-    V = \begin{bmatrix}
+    C = \begin{bmatrix}
         1 & 0 & 0 & 1 & 0 & 1 \\
         0 & 0 & 0 & 0 & 0 & 1
     \end{bmatrix}
@@ -189,14 +199,29 @@ Now we select the first element of the outputs to derive \( Dw_1 \) without loss
         0 & 0 & 0 & 0 & 0 & 1
     \end{bmatrix}
 \]
-The matrix \( V \) above contains difference mask rows that "spoil" \( Y_{1,1,1} \) and \( Y_{3,1,1} \), while \( I \) consists of masks, each designed to "fix" \( Y_{2,1,1} \). It is clear that \( I_1 \) and \( I_2 \) do not "spoil" the outputs even when combined, but \( I_3 \) conflicts with \( V_2 \), and when combined with the former two, it also conflicts with \( V_1 \), so it should definitely be discarded. As a result, we obtain:
+The matrix \( C \) above contains difference mask rows that "spoil" \( Y_{1,1,1} \) and \( Y_{3,1,1} \), while \( I \) consists of masks, each designed to "fix" \( Y_{2,1,1} \). It is clear that \( I_1 \) and \( I_2 \) do not "spoil" the outputs even when combined, but \( I_3 \) conflicts with \( C_2 \), and when combined with the former two, it also conflicts with \( C_1 \), so it should definitely be discarded. As a result, we get:
 \[
     Dw_1 = \begin{bmatrix} 1 & 0 & 0 & 0 & 1 & 0 & 0 \end{bmatrix}
 \]
 
-It is easy to see that the minimal difference masks can be derived by selecting individual bits from the rows of the \textbf{Positive Activation Sensitivity} matrix or by taking entire rows from the \textbf{Negative Activation Sensitivity} matrix, depending on the output element value.
-
 After we have obtained the necessary intuition, we can formally define the \textbf{Error Projection} operation.
+
+\begin{definition}
+    \textbf{Error Projection} is an operation that is defined for two Boolean matrices, \( C \) of size \( p \times n \), and \( I \) of size \( q \times n \), denoted as:
+    \[
+        D = \mathcal{R}(C, I)
+    \]
+    and produces a \( 1 \times n \) Boolean row vector,
+    \[
+        D = \bigvee_{i=1}^{h} I'_{i},
+    \]
+    where \( I' \) is the largest possible subset of the rows of \( I \) such that
+    \[
+        \forall i, \quad C_i \wedge D \neq C_i.
+    \]
+\end{definition}
+
+
 
 \section{Discussion}
 Interpret results, compare with previous work, and explain implications.
