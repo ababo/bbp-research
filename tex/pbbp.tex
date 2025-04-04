@@ -207,7 +207,7 @@ The matrix \( C \) above contains difference mask rows that "spoil" \( Y_{1,1,1}
 After we have obtained the necessary intuition, we can formally define the \textbf{Error Projection} operation.
 
 \begin{definition}
-    \textbf{Error Projection} is an operation that is defined for two Boolean matrices, \( C \) of size \( p \times n \), and \( I \) of size \( q \times n \), denoted as:
+    \textbf{Error Projection} is an operation that is defined for two Boolean matrices, C of size \( p \times n \), and I of size \( q \times n \), denoted as:
     \[
         D = \mathcal{R}(C, I)
     \]
@@ -221,7 +221,49 @@ After we have obtained the necessary intuition, we can formally define the \text
     \]
 \end{definition}
 
+\section{Error Backpropagation}
+Before gradually deriving an error backpropagation routine, we introduce an auxiliary operation that facilitates a smooth transition from the \textbf{Activation Sensitivity} matrix to difference masks, which serve as input for \textbf{Error Projection}.
 
+\begin{definition}
+    \textbf{Selection Expansion} is an operation defined for a Boolean vector S of size \( 1 \times n \), denoted as:
+    \[
+        M = \mathcal{E}(S)
+    \]
+    It produces a \(p \times n \) Boolean matrix M, where p is the number of 1 elements in S. The matrix M is constructed by vertically concatenating rows, where for each \( S_{1,i} = 1 \), there is a corresponding row in M with a 1 in the i-th position and 0s elsewhere.
+\end{definition}
+
+The initial step of the \textbf{Error Backpropagation} routine is to derive a difference matrix \( D^w \) such that substituting \( W \) with \( W' \) minimizes the output errors, where
+\[
+W' = W \oplus D^w
+\]
+
+First, we compute the \textbf{Activation Sensitivity} matrices, which represent the sensitivity of \textbf{Row Activation} to changes in W when applied to \( X_k \):
+\[
+    S^{w+}_k = \mathcal{S^+}(W, X_k),\quad
+    S^{w-}_k = \mathcal{S^-}(W, X_k)
+\]
+
+Second, each row of \( D^w_i \) is computed as:
+\[
+    D^w_i = \mathcal{R}(C_i, I_i)
+\]
+where
+\[
+    C^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad
+    C^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \quad
+    C_i = \begin{bmatrix} C^+_i \\ C^-_i \end{bmatrix}
+\]
+for \( k \) such that \( E_{k,i} = 0 \), and
+\[
+    I^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad
+    I^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \quad
+    I_i = \begin{bmatrix} I^+_i \\ I^-_i \end{bmatrix}
+\]
+for \( k \) such that \( E_{k,i} = 1 \).
+
+\begin{note}
+    The \(\begin{bmatrix}\,\,\end{bmatrix}\) notation here and below designates vertical rank-preserving matrix concatenation. For example, for an \( m \times n \) matrix \( A \) and a \( p \times n \) matrix \( B \), the matrix \( C = \begin{bmatrix} A \\ B \end{bmatrix} \) is of size \( (m+p) \times n \) and consists of the rows from \( A \) and \( B \).
+\end{note}
 
 \section{Discussion}
 Interpret results, compare with previous work, and explain implications.
