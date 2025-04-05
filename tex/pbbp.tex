@@ -232,9 +232,9 @@ Before gradually deriving an error backpropagation routine, we introduce an auxi
     It produces a \(p \times n \) Boolean matrix M, where p is the number of 1 elements in S. The matrix M is constructed by vertically concatenating rows, where for each \( S_{1,i} = 1 \), there is a corresponding row in M with a 1 in the i-th position and 0s elsewhere.
 \end{definition}
 
-The initial step of the \textbf{Error Backpropagation} routine is to derive a difference matrix \( D^w \) such that substituting \( W \) with \( W' \) minimizes the output errors, where
+The initial step of the \textbf{Error Backpropagation} routine is to derive a difference mask \( D^w \) such that substituting \( W \) with \( W' \) minimizes the output errors, where
 \[
-W' = W \oplus D^w
+    W' = W \oplus D^w
 \]
 
 First, we compute the \textbf{Activation Sensitivity} matrices, which represent the sensitivity of \textbf{Row Activation} to changes in W when applied to \( X_k \):
@@ -249,21 +249,68 @@ Second, each row of \( D^w_i \) is computed as:
 \]
 where
 \[
-    C^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad
-    C^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \quad
+    C^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
+    C^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
     C_i = \begin{bmatrix} C^+_i \\ C^-_i \end{bmatrix}
 \]
-for \( k \) such that \( E_{k,i} = 0 \), and
+for k such that \( E_{k,i} = 0 \), and
 \[
-    I^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad
-    I^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \quad
+    I^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
+    I^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
     I_i = \begin{bmatrix} I^+_i \\ I^-_i \end{bmatrix}
 \]
-for \( k \) such that \( E_{k,i} = 1 \).
+for k such that \( E_{k,i} = 1 \).
 
 \begin{note}
     The \(\begin{bmatrix}\,\,\end{bmatrix}\) notation here and below designates vertical rank-preserving matrix concatenation. For example, for an \( m \times n \) matrix \( A \) and a \( p \times n \) matrix \( B \), the matrix \( C = \begin{bmatrix} A \\ B \end{bmatrix} \) is of size \( (m+p) \times n \) and consists of the rows from \( A \) and \( B \).
 \end{note}
+
+Using the updated \( W' \), we compute \( Z'_k \), \( Y'_k \) for each \( k \), and the corresponding error \( E'_k \) as follows:
+\[
+    Z'_k = \mathcal{A}(X_k, W'),\quad Y'_k = Z'_k \oplus B,\quad E'_k = Y'_k \oplus Y^e_k
+\]
+
+To eliminate common errors where \( E_{k,i} = 1 \) for all \( k \), we modify the bias \( B \) using a conjunction over all error vectors:
+\[
+    D^b = \bigwedge_{k=1}^b E'_k,\quad B' = B \oplus D^b
+\]
+
+The errors remaining after applying the corrections with \( W' \) and \( B' \) are defined as \( E''_k \), which must be corrected by earlier layers:
+\[
+    E''_k = E'_k \wedge \overline{D^b}
+\]
+
+To correct the errors, we need to find the optimal difference masks \( D^x_k \) for each \( X_k \) that minimize the number of 1s in the corresponding \( E''_k \). These difference masks will then serve as the errors \( E_k \) for the preceding layer.
+
+First we compute the \textbf{Activation Sensitivity} matrices, which represent the sensitivity of \textbf{Row Activation} to changes in \( X_k \) when applied to \( W' \):
+\[
+    S^{x+}_k = \mathcal{S^+}(X_k, W'),\quad
+    S^{x-}_k = \mathcal{S^-}(X_k, W')
+\]
+
+The matrices above allow us to obtain minimal difference masks that flip each \( i \)-th element in \( Y''_k = Z'_k \oplus B' \). Similarly to the computation of \( D^w_i \), we need to identify as many difference masks as possible that correct the output values where \( E''_{k,i} = 1 \), while preserving the values where \( E''_{k,i} = 0 \).
+
+Next, we compute \( D^x_k \) by reusing the \textbf{Error Projection} operation, as described in the previous step:
+\[
+    D^x_k = \mathcal{R}(C_k, I_k)
+\]
+where
+\[
+    C^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_k) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
+    C^-_k = \begin{bmatrix} \vdots \\ S^{x-}_k \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
+    C_k = \begin{bmatrix} C^+_k \\ C^-_k \end{bmatrix}
+\]
+for i such that \( E''_{k,i} = 0 \), and
+\[
+    I^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_k) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
+    I^-_k = \begin{bmatrix} \vdots \\ S^{x-}_k \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
+    I_k = \begin{bmatrix} I^+_k \\ I^-_k \end{bmatrix}
+\]
+for i such that \( E''_{k,i} = 1 \).
+
+We have just described the \textbf{Error Backpropagation} iteration for the final fully connected layer. The preceding layers follow the same routine, applied sequentially from the penultimate layer back to the first. The only difference is that, instead of computing the initial errors as \( E_k = Y_k \oplus Y^e_k \), these layers receive their errors from the desired input difference masks of the subsequent layer: \( E_k = D^x_k \).
+
+\section{Specialization}
 
 \section{Discussion}
 Interpret results, compare with previous work, and explain implications.
