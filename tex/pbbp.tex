@@ -213,14 +213,14 @@ Second, each row of \( D^w_i \) is computed as:
 \[ D^w_i = \mathcal{R}(C_i, I_i) \]
 where
 \[
-    C^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
-    C^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
+    C^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_{k,i}) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
+    C^-_i = \begin{bmatrix} \vdots \\ S^{w-}_{k,i} \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
     C_i = \begin{bmatrix} C^+_i \\ C^-_i \end{bmatrix}
 \]
 for \( k \) such that \( E_{k,i} = 0 \), and
 \[
-    I^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_k) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
-    I^-_i = \begin{bmatrix} \vdots \\ S^{w-}_k \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
+    I^+_i = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{w+}_{k,i}) \\ \vdots \end{bmatrix}_{Z_{k,i} = 0} \quad
+    I^-_i = \begin{bmatrix} \vdots \\ S^{w-}_{k,i} \\ \vdots \end{bmatrix}_{Z_{k,i} = 1} \quad
     I_i = \begin{bmatrix} I^+_i \\ I^-_i \end{bmatrix}
 \]
 for \( k \) such that \( E_{k,i} = 1 \).
@@ -249,14 +249,14 @@ Next, we compute \( D^x_k \) by reusing the \textbf{Error Projection} operation,
 \[ D^x_k = \mathcal{R}(C_k, I_k) \]
 where
 \[
-    C^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_k) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
-    C^-_k = \begin{bmatrix} \vdots \\ S^{x-}_k \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
+    C^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_{k,i}) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
+    C^-_k = \begin{bmatrix} \vdots \\ S^{x-}_{k,i} \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
     C_k = \begin{bmatrix} C^+_k \\ C^-_k \end{bmatrix}
 \]
 for \( i \) such that \( E''_{k,i} = 0 \), and
 \[
-    I^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_k) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
-    I^-_k = \begin{bmatrix} \vdots \\ S^{x-}_k \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
+    I^+_k = \begin{bmatrix} \vdots \\ \mathcal{E}(S^{x+}_{k,i}) \\ \vdots \end{bmatrix}_{Z'_{k,i} = 0} \quad
+    I^-_k = \begin{bmatrix} \vdots \\ S^{x-}_{k,i} \\ \vdots \end{bmatrix}_{Z'_{k,i} = 1} \quad
     I_k = \begin{bmatrix} I^+_k \\ I^-_k \end{bmatrix}
 \]
 for \( i \) such that \( E''_{k,i} = 1 \).
@@ -294,6 +294,26 @@ With the \textbf{Specialized Activation Sensitivity}, there is no longer a need 
 \begin{note}
     In practice, when a \textbf{Specialized Error Projection} vector contains multiple 1s, it is essential to zero all but one of them to prevent the zeroing of rows in subsequent \textbf{Specialized Activation Sensitivity} matrices, which will negate further learning. A random selection of the 1 to retain is likely the most effective approach.
 \end{note}
+
+Now, we derive the \textbf{Error Backpropagation} steps for the specialized case, focusing only on the differences from the general case.
+
+First, to derive \( D^w \), we compute the \textbf{Specialized Activation Sensitivity} matrices, which represent the sensitivity of \textbf{Row Activation} to changes in \( W \) when applied to \( X_k \):
+\[ S^{w*}_k = \mathcal{S}^*(W, X_k) \]
+
+Next, we compute each row \( D^w_i \) of the difference mask \( D^w \) as:
+\[ D^w_i = \mathcal{R}^*(C_i, I_i) \]
+where
+\[ C_i = \begin{bmatrix} \vdots \\ S^{w*}_{k,i} \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad I_i = \begin{bmatrix} \vdots \\ S^{w*}_{k,i} \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \]
+
+Then, to derive \( D^x_k \), we compute the \textbf{Specialized Activation Sensitivity} matrices, which represent the sensitivity of \textbf{Row Activation} to changes in \( X_k \) when applied to \( W' \):
+\[ S^{x*}_k = \mathcal{S}^*(X_k, W') \]
+
+Finally, we compute the difference mask \( D^x_k \) for each \( k \) as:
+\[ D^x_k = \mathcal{R}^*(C_k, I_k) \]
+where
+\[ C_k = \begin{bmatrix} \vdots \\ S^{x*}_{k,i} \\ \vdots \end{bmatrix}_{E_{k,i} = 0} \quad I_k = \begin{bmatrix} \vdots \\ S^{x*}_{k,i} \\ \vdots \end{bmatrix}_{E_{k,i} = 1} \]
+
+While the specialized routine seems to offer reduced learning capabilities, a thorough comparison with the general approach requires further research, which is beyond the scope of this article.
 
 \section{Discussion}
 Our proposed Boolean backpropagation method demonstrates a feasible approach to training neural networks using purely Boolean operations. Compared to traditional methods like those in \cite{rastegari2016}, which rely on numerical gradients even with quantized weights, our method eliminates floating-point computations entirely, potentially reducing computational overhead. Initial experiments suggest that the model can learn simple Boolean functions effectively, though its performance on complex tasks remains to be fully evaluated. The specialization in Section 5 further enhances efficiency, making it a promising candidate for hardware implementation. However, the trade-off in ignoring multi-element flips may limit its expressiveness, a topic warranting further investigation.
