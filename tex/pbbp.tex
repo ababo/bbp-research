@@ -316,10 +316,12 @@ where
 While the specialized routine seems to offer reduced learning capabilities, a thorough comparison with the general approach requires further research, which is beyond the scope of this article.
 
 \section{Discussion}
-Our proposed Boolean backpropagation method demonstrates a feasible approach to training neural networks using purely Boolean operations. Compared to traditional methods like those in \cite{rastegari2016}, which rely on numerical gradients even with quantized weights, our method eliminates floating-point computations entirely, potentially reducing computational overhead. Initial experiments suggest that the model can learn simple Boolean functions effectively, though its performance on complex tasks remains to be fully evaluated. The specialization in Section 5 further enhances efficiency, making it a promising candidate for hardware implementation. However, the trade-off in ignoring multi-element flips may limit its expressiveness, a topic warranting further investigation.
+Our proposed Boolean backpropagation method demonstrates a feasible approach to training neural networks using purely Boolean operations. Compared to traditional methods like those in \cite{rastegari2016}, which rely on numerical gradients even with quantized weights, our method eliminates floating-point computations entirely, potentially reducing computational overhead.
+
+Initial experiments with the specialized approach suggest that the model can learn complex patterns. For instance, a model with 4 fully connected layers with widths \( 6272 \rightarrow 4096 \rightarrow 4096 \rightarrow 4096 \rightarrow 320 \) is capable of recognizing MNIST digits with 75\% accuracy after 30 minutes of training on a laptop CPU \cite{bbp-research}. These results indicate that, despite its limitations, the specialized approach can be competitive with traditional backpropagation in certain tasks.
 
 \section{Conclusion}
-This paper introduced a practical Boolean backpropagation framework based on a composite gate, enabling training without numerical operations. Key contributions include the definitions of Row Activation, Activation Sensitivity, and Error Projection operations, alongside a specialized variant for efficiency. While preliminary results are encouraging, future work should focus on optimizing the Error Projection complexity, evaluating scalability on larger datasets, and exploring hardware accelerations to fully realize its potential.
+While the proposed Boolean backpropagation approach shows promise, further investigation is needed to fully understand its limitations and potential applications. Future work will focus on refining the method to handle more complex tasks and determining its scalability across different network architectures. Additionally, a thorough comparison with other state-of-the-art approaches will be crucial in identifying areas for improvement.
 
 \begin{thebibliography}{9}
     \bibitem{ma2024}
@@ -327,6 +329,9 @@ This paper introduced a practical Boolean backpropagation framework based on a c
 
     \bibitem{rastegari2016}
     Mohammad Rastegari, Vicente Ordonez, Joseph Redmon, Ali Farhadi, \textit{XNOR-Net: ImageNet Classification Using Binary Convolutional Neural Networks}, arXiv, 2016.
+
+    \bibitem{bbp-research}
+    \href{https://github.com/ababo/bbp-research/blob/main/notebook/mnist.ipynb}{Simon Golbert - Boolean Backpropagation Research}
 \end{thebibliography}
 
 \end{document}
