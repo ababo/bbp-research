@@ -61,7 +61,7 @@ In order to express model inference in matrix form using the gate function defin
 
     In other words, \( Z_{1i} \) is true if there exists at least one column \( j \) such that both \( X_{ij} \) and \( W_{ij} \) are true.
 
-    The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+    The \textbf{Row Activation} operation can also be applied when one of the arguments (either \( X \) or \( W \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying.
 \end{definition}
 
 \subsection{Fully Connected Layer}
@@ -98,7 +98,6 @@ Now we can define operations that determine such "sensitive" elements.
         S = \mathcal{S}^+(A, B),
     \]
     produces a matrix \( S \) of the same size, where each element \( S_{i,j} \) is defined as:
-
     \[
         S_{i,j} =
         \begin{cases}
@@ -106,12 +105,12 @@ Now we can define operations that determine such "sensitive" elements.
             0, & \text{otherwise}.
         \end{cases}
     \]
+
     The \textbf{Negative Activation Sensitivity} operation, denoted as
     \[
         S = \mathcal{S}^-(A, B),
     \]
     produces a matrix \( S \) of the same size, where each element \( S_{i,j} \) is defined as:
-
     \[
         S_{i,j} =
         \begin{cases}
@@ -119,11 +118,12 @@ Now we can define operations that determine such "sensitive" elements.
             0, & \text{otherwise}.
         \end{cases}
     \]
+
     The \textbf{Activation Sensitivity} operation is defined as
     \[
         \mathcal{S}(A, B) = \mathcal{S}^+(A, B) \vee \mathcal{S}^-(A, B)
     \]
-    The operations above can also be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying the standard row activation operation.
+    The operations above can also be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying.
 \end{definition}
 
 In the example above:
@@ -311,6 +311,43 @@ for i such that \( E''_{k,i} = 1 \).
 We have just described the \textbf{Error Backpropagation} iteration for the final fully connected layer. The preceding layers follow the same routine, applied sequentially from the penultimate layer back to the first. The only difference is that, instead of computing the initial errors as \( E_k = Y_k \oplus Y^e_k \), these layers receive their errors from the desired input difference masks of the subsequent layer: \( E_k = D^x_k \).
 
 \section{Specialization}
+The \textbf{Error Backpropagation} routine described above follows a single flow. It relies on the \textbf{Error Projection} operation, which has relatively high computational complexity. This could potentially negate the performance advantages of a purely Boolean training approach compared to traditional methods. In fact, optimizing this operation remains an open question and requires further research, which is beyond the scope of this article.
+
+We can significantly reduce the complexity of the \textbf{Error Projection} by ignoring cases where the output flips only when multiple input elements change simultaneously—that is, when rows in the \textbf{Negative Activation Sensitivity} matrices contain more than one 1.
+
+\begin{definition}
+    For given Boolean matrices \( A \) and \( B \) of size \( m \times n \), and \( Z = \mathcal{A}(A, B) \) the \textbf{Specialized Activation Sensitivity} operation, denoted as
+    \[
+        S = \mathcal{S}^*(A, B),
+    \]
+    produces a matrix \( S \) of the same size, where each element \( S_{i,j} \) is defined as:
+    \[
+        S_{i,j} =
+        \begin{cases}
+            1, & \text{if flipping } A_{i,j} \text{ alone causes } Z_{1,i} \text{ to flip}, \\
+            0, & \text{otherwise}.
+        \end{cases}
+    \]
+
+    Similarly to \textbf{Row Activation}, the \textbf{Specialized Activation Sensitivity} operation can be applied when one of the arguments (either \( A \) or \( B \)) is a \( 1 \times n \) Boolean row vector, while the other remains an \( m \times n \) matrix. In this case, as before, the vector is broadcast to an \( m \times n \) matrix by repeating it across all \( m \) rows before applying.
+\end{definition}
+
+With the \textbf{Specialized Activation Sensitivity}, there is no longer a need for \textbf{Selection Expansion}, as the corresponding \textbf{Specialized Error Projection} can now be computed efficiently using simple element-wise Boolean operations. Specifically, given the condensed matrices \( C \) and \( I \) — constructed from rows of the \textbf{Specialized Activation Sensitivity} matrices, where each 1 indicates that flipping a single element suffices to change the output — we can easily determine an optimal difference mask. This is done by selecting combinations that fix the errors while simply excluding those that would "spoil" correct outputs.
+
+\begin{definition}
+    \textbf{Specialized Error Projection} is an operation defined for two Boolean matrices \( C \) of size \( p \times n \), and I of size \( q \times n \), denoted as:
+    \[
+        D = \mathcal{R}^*(C, I),
+    \]
+    which produces a \( 1 \times n \) Boolean row vector \( D \):
+    \[
+        D_{1,j} = \left( \bigvee_{i=1}^{q} I_{i,j} \right) \wedge \neg \left( \bigvee_{i=1}^{p} C_{i,j} \right) \quad \text{for each } j = 1 \text{ to } n.
+    \]
+\end{definition}
+
+\begin{note}
+    In practice, when a \textbf{Specialized Error Projection} vector contains multiple 1s, it is essential to zero all but one of them to prevent the zeroing of rows in subsequent \textbf{Specialized Activation Sensitivity} matrices, which will negate further learning. A random selection of the 1 to retain is likely the most effective approach.
+\end{note}
 
 \section{Discussion}
 Interpret results, compare with previous work, and explain implications.
