@@ -1,0 +1,37 @@
+Dear Editors,
+
+I am submitting my manuscript titled "Practical Boolean Backpropagation" for consideration in the Journal of Machine Learning Research (JMLR).
+
+1. Prior Publications:
+This manuscript has not been published previously, nor is it under consideration by any other journal or conference. It is an original work with no significant overlap with any prior publications.
+
+2. Author Consent:
+I confirm that I am the sole author of this manuscript and fully consent to its submission and review by JMLR.
+
+3. Conflicts of Interest:
+I have no conflicts of interest to disclose with any of the action editors.
+
+4. Suggested Action Editors:
+• Finale Doshi-Velez
+• Zachary Lipton
+• Finale Doshi-Velez
+• Stefano Ermon
+• Tamara Broderick
+
+5. Suggested Reviewers:
+• Daniel Selsam
+• Yann LeCun
+• Guy Van den Broeck
+• Andrew Trask
+• Marta Kwiatkowska
+
+6. Keywords:
+• boolean backpropagation
+• neural networks
+• binary weights
+• learning algorithms
+• discrete optimization
+
+Sincerely,
+Simon Golbert
+simongolbert@proton.me

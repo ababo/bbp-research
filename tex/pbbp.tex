@@ -1,19 +1,21 @@
-\documentclass{article}
+\documentclass[pmlr]{jmlr}
 
-\usepackage{amsmath, amsthm, hyperref}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage[load-configurations=version-1]{siunitx}
 
-\title{Practical Boolean Backpropagation}
-\author{Simon Golbert}
-\date{\today}
+\newcommand{\cs}[1]{\texttt{\char`\\#1}}
 
-\setlength{\parskip}{5pt}
-\linespread{1.1}
-
-\theoremstyle{definition}
-\newtheorem*{definition}{Definition}
-
-\theoremstyle{remark}
+\theorembodyfont{\upshape}
+\theoremheaderfont{\scshape}
+\theorempostheader{:}
+\theoremsep{\newline}
 \newtheorem*{note}{Note}
+
+\jmlryear{2025}
+
+\title[Practical Boolean Backpropagation]{Practical Boolean Backpropagation}
+\author{\Name{Simon Golbert} \Email{simongolbert@proton.me}}
 
 \begin{document}
 
@@ -23,10 +25,15 @@
     Boolean neural networks offer hardware-efficient alternatives to real-valued models. While quantization is common, purely Boolean training remains underexplored. We present a practical method for purely Boolean backpropagation for networks based on a single specific gate we chose, operating directly in Boolean algebra involving no numerics. Initial experiments confirm its feasibility.
 \end{abstract}
 
+\begin{keywords}
+    Boolean neural networks, backpropagation, discrete optimization, binary models, Boolean algebra
+\end{keywords}
+
 \section{Introduction}
+\label{sec:intro}
 To reduce the computational complexity and memory requirements of models, various quantization techniques are widely used today. Floating-point numbers are typically reduced to 16-, 8-, or 4-bit representations. This technique allows preserving the traditional gradient-based optimization of a differentiable loss function through backpropagation.
 
-More recent research is moving toward more extreme forms of quantization. For instance, \cite{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values \{-1, 0, 1\}. Another prominent study, \cite{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving very decent inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
+More recent research is moving toward more extreme forms of quantization. For instance, \citep{ma2024} introduces BitNet b1.58, a novel 1.58-bit Large Language Model (LLM) where each parameter is represented using ternary values \{-1, 0, 1\}. Another prominent study, \citep{rastegari2016}, presents XNOR-Net, a method for efficient image classification using purely Boolean convolutional neural networks. Despite achieving very decent inference efficiency, the latter project (like the former) relies on training driven by traditional backpropagation (albeit with heavily quantized parameter values), thus still requiring significant computational resources to run.
 
 To maximize efficiency in both model training and inference, we should consider a methodology based on purely Boolean computations. This approach has the potential to leverage existing hardware for massive parallelism while also opening avenues for developing specialized, cost-effective, and energy-efficient hardware optimized for bitwise operations. While not yet a definitive solution, exploring this direction could lead to significant advancements in high-performance computing.
 
@@ -318,20 +325,11 @@ While the specialized routine seems to offer reduced learning capabilities, a th
 \section{Discussion}
 Our proposed Boolean backpropagation method demonstrates a feasible approach to training neural networks using purely Boolean operations. Compared to traditional methods like those in \cite{rastegari2016}, which rely on numerical gradients even with quantized weights, our method eliminates floating-point computations entirely, potentially reducing computational overhead.
 
-Initial experiments with the specialized approach suggest that the model can learn complex patterns. For instance, a model with 4 fully connected layers with widths \( 6272 \rightarrow 4096 \rightarrow 4096 \rightarrow 4096 \rightarrow 320 \) is capable of recognizing MNIST digits with 75\% accuracy after 30 minutes of training on a laptop CPU \cite{bbp-research}. These results indicate that, despite its limitations, the specialized approach can be competitive with traditional backpropagation in certain tasks.
+Initial experiments with the specialized approach suggest that the model can learn complex patterns. For instance, a model with 4 fully connected layers with widths \( 6272 \rightarrow 4096 \rightarrow 4096 \rightarrow 4096 \rightarrow 320 \) is capable of recognizing MNIST digits with 75\% accuracy after 30 minutes of training on a laptop CPU \cite{bbp-research-mnist}. These results indicate that, despite its limitations, the specialized approach can be competitive with traditional backpropagation in certain tasks.
 
 \section{Conclusion}
 While the proposed Boolean backpropagation approach shows promise, further investigation is needed to fully understand its limitations and potential applications. Future work will focus on refining the method to handle more complex tasks and determining its scalability across different network architectures. Additionally, a thorough comparison with other state-of-the-art approaches will be crucial in identifying areas for improvement.
 
-\begin{thebibliography}{9}
-    \bibitem{ma2024}
-    Shuming Ma, Hongyu Wang, Lingxiao Ma, Lei Wang, Wenhui Wang, Shaohan Huang, Li Dong, Ruiping Wang, Jilong Xue, Furu Wei, \textit{The Era of 1-bit LLMs: All Large Language Models are in 1.58 Bits}, arXiv, 2024.
-
-    \bibitem{rastegari2016}
-    Mohammad Rastegari, Vicente Ordonez, Joseph Redmon, Ali Farhadi, \textit{XNOR-Net: ImageNet Classification Using Binary Convolutional Neural Networks}, arXiv, 2016.
-
-    \bibitem{bbp-research}
-    \href{https://github.com/ababo/bbp-research/blob/main/notebook/mnist.ipynb}{Simon Golbert - Boolean Backpropagation Research}
-\end{thebibliography}
+\bibliography{pbbp}
 
 \end{document}
