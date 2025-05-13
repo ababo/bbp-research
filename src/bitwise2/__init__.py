@@ -1,7 +1,7 @@
-"""BitTensor and related utilities for Boolean tensor operations."""
+"""BitTensor and related generic Boolean tensor operations."""
 
 from enum import Enum
-from typing import TypeAlias, Union, Self
+from typing import TypeAlias, Union
 
 import torch
 
@@ -16,7 +16,7 @@ class BitTensor:
 
     def __init__(self, bit_length: int, data: torch.Tensor):
         assert data.dtype == torch.int32
-        assert data.shape[-1] == (bit_length - 1) / 32 + 1
+        assert data.shape[-1] == (bit_length - 1) // 32 + 1
 
         self._bit_length = bit_length
         self._data = data
@@ -26,8 +26,13 @@ class BitTensor:
         """Return the shape of the tensor."""
         return self._data.shape[:-1] + (self._bit_length,)
 
+    @property
+    def data(self) -> torch.Tensor:
+        """Return the underlying torch.Tensor."""
+        return self._data
 
-BitLiteral: TypeAlias = list[Union[str, Self]]
+
+BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]
 
 
 class Device(Enum):
@@ -37,7 +42,7 @@ class Device(Enum):
     CUDA = "cuda"
 
 
-def tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
+def bit_tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
     """Convert a nested list of bit strings to a BitTensor.
 
     Parses and pads the bit representation to create a BitTensor on the specified device.
@@ -65,9 +70,9 @@ def tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
             for i in range(0, len(padded_bits), 32)
         ], len(bits)
 
-    IntLiteral: TypeAlias = list[Union[int, Self]]
+    IntLiteral: TypeAlias = list[Union[int, "IntLiteral"]]
 
-    def parse_literal(literal: BitLiteral) -> IntLiteral[IntLiteral, int]:
+    def parse_literal(literal: BitLiteral) -> Union[IntLiteral, int]:
         if isinstance(literal, str):
             return parse_bits(literal)
 
@@ -82,7 +87,7 @@ def tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
         return result, bit_length
 
     int_literal, bit_length = parse_literal(literal)
-    data = torch.tensor(int_literal, dtype=torch.uint32, device=device).view(
+    data = torch.tensor(int_literal, dtype=torch.uint32, device=device.value).view(
         torch.int32
     )
     return BitTensor(bit_length, data)
