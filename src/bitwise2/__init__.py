@@ -22,9 +22,9 @@ class BitTensor:
         self._data = data
 
     @property
-    def shape(self) -> torch.Size:
+    def shape(self) -> list[int]:
         """Return the shape of the tensor."""
-        return self._data.shape[:-1] + (self._bit_length,)
+        return list(self._data.shape[:-1]) + [self._bit_length]
 
     @property
     def data(self) -> torch.Tensor:
@@ -61,7 +61,7 @@ def bit_tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
     def parse_bits(bits: str) -> tuple[list[int], int]:
         bits = bits.replace("_", "")
         if not all(c in "01" for c in bits):
-            raise ValueError("malformed bits (expected only 1 or 0)")
+            raise ValueError("malformed bits (expected only 1, 0 or _)")
 
         padding = (32 - len(bits) % 32) % 32
         padded_bits = bits + "0" * padding

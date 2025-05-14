@@ -40,3 +40,15 @@ def test_bit_tensor():
 
     t = bitwise2.bit_tensor("11111111111111111111111111111111")
     assert torch.equal(t.data, torch.tensor([-1], dtype=torch.int32))
+
+
+def test_bit_tensor_shape():
+    """Test BitTensor.shape."""
+
+    t = bitwise2.bit_tensor("0001010")
+    assert t.shape == [7]
+
+    t = bitwise2.bit_tensor(
+        [["10000000000000000000000000000000_01", "10000000000000000000000000000000_10"]]
+    )
+    assert t.shape == [1, 2, 34]
