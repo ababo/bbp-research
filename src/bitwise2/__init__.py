@@ -33,6 +33,7 @@ class BitTensor:
 
 
 BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]
+_IntLiteral: TypeAlias = Union[list[int], list["_IntLiteral"]]
 
 
 class Device(Enum):
@@ -42,7 +43,7 @@ class Device(Enum):
     CUDA = "cuda"
 
 
-def bit_tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
+def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
     """Convert a nested list of bit strings to a BitTensor.
 
     Parses and pads the bit representation to create a BitTensor on the specified device.
@@ -70,16 +71,15 @@ def bit_tensor(literal: BitLiteral, device=Device.CPU) -> BitTensor:
             for i in range(0, len(padded_bits), 32)
         ], len(bits)
 
-    IntLiteral: TypeAlias = list[Union[int, "IntLiteral"]]
-
-    def parse_literal(literal: BitLiteral) -> Union[IntLiteral, int]:
+    def parse_literal(literal: BitLiteral) -> tuple[_IntLiteral, int]:
         if isinstance(literal, str):
             return parse_bits(literal)
 
-        result, bit_length = [], None
+        result: _IntLiteral = []
+        bit_length = -1
         for part in literal:
             int_part, length = parse_literal(part)
-            if bit_length is not None and length != bit_length:
+            if bit_length != -1 and length != bit_length:
                 raise ValueError("inconsistent bit length")
             bit_length = length
             result.append(int_part)

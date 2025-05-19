@@ -22,7 +22,11 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/src"
     ],
+    "python.analysis.typeCheckingMode": "strict",
     "python.defaultInterpreterPath": ".pixi/envs/default/bin/python",
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "src"
+    },
     "terminal.integrated.env.osx": {
         "PYTHONPATH": "src"
     }
