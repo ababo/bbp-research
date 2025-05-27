@@ -1,7 +1,7 @@
 """BitTensor and related generic Boolean tensor operations."""
 
 from enum import Enum
-from typing import cast, TypeAlias, Union
+from typing import cast, Any, TypeAlias, Union
 
 import torch
 
@@ -14,8 +14,16 @@ class BitTensor:
     _bit_length: int
     _data: torch.Tensor
 
+    def __eq__(self, other: Any) -> bool:
+        return (
+            isinstance(other, BitTensor)
+            and self._bit_length == other._bit_length
+            and torch.equal(self._data, other._data)
+        )
+
     def __init__(self, bit_length: int, data: torch.Tensor):
         assert data.dtype == torch.int32
+        assert len(data) != 0
         assert data.shape[-1] == (bit_length - 1) // 32 + 1
 
         self._bit_length = bit_length
@@ -155,3 +163,28 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
         torch.int32
     )
     return BitTensor(bit_length, data)
+
+
+def from_bool_tensor(tensor: torch.Tensor) -> BitTensor:
+    """Convert a Boolean torch.Tensor to a BitTensor."""
+
+    if tensor.dtype != torch.bool:
+        raise ValueError("expected tensor of dtype torch.bool")
+    if len(tensor) == 0 or tensor.shape[-1] == 0:
+        raise ValueError("expected non-empty tensor")
+
+    shape = tensor.shape
+    length = shape[-1]
+    num_words = (length + 31) // 32
+
+    indices = torch.arange(length, dtype=torch.int32, device=tensor.device)
+    shifts, words = indices % 32, indices // 32
+
+    packed_shape = shape[:-1] + (num_words,)
+    packed = torch.zeros(packed_shape, dtype=torch.int32, device=tensor.device)
+
+    words = words.expand(*shape[:-1], -1)
+    shifts = shifts.expand_as(tensor)
+
+    packed.scatter_add_(-1, words.to(torch.int64), tensor << shifts)
+    return BitTensor(tensor.shape[-1], packed)
