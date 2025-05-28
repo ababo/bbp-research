@@ -128,7 +128,7 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
         A BitTensor containing the parsed bit data.
 
     Raises:
-        ValueError: If bit strings contain invalid characters or have inconsistent lengths.
+        ValueError: If the literal is malformed.
     """
 
     def parse_bits(bits: str) -> tuple[list[int], int]:
@@ -146,6 +146,9 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
     def parse_literal(literal: BitLiteral) -> tuple[_IntLiteral, int]:
         if isinstance(literal, str):
             return parse_bits(literal)
+
+        if len(literal) == 0:
+            raise ValueError("empty literal")
 
         result: _IntLiteral = []
         bit_length = -1
@@ -166,12 +169,22 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
 
 
 def from_bool_tensor(tensor: torch.Tensor) -> BitTensor:
-    """Convert a Boolean torch.Tensor to a BitTensor."""
+    """Convert a Boolean PyTorch tensor to a BitTensor.
+
+    Args:
+        tensor: torch.Tensor with dtype=torch.bool.
+
+    Returns:
+        A BitTensor that corresponds to the given tensor.
+
+    Raises:
+        ValueError: If the tensor is scalar, empty or non-Boolean.
+    """
 
     if tensor.dtype != torch.bool:
-        raise ValueError("expected tensor of dtype torch.bool")
+        raise ValueError("unexpected tensor dtype")
     if len(tensor) == 0 or tensor.shape[-1] == 0:
-        raise ValueError("expected non-empty tensor")
+        raise ValueError("scalar or empty tensor")
 
     shape = tensor.shape
     length = shape[-1]
@@ -188,3 +201,31 @@ def from_bool_tensor(tensor: torch.Tensor) -> BitTensor:
 
     packed.scatter_add_(-1, words.to(torch.int64), tensor << shifts)
     return BitTensor(tensor.shape[-1], packed)
+
+
+def activate(x: BitTensor, w: BitTensor) -> BitTensor:
+    """
+    Compute Row Activation for a batch of inputs and weights.
+
+    Args:
+        x: A batch of inputs with shape [b, 1, n].
+        w: Weights with shape [m, n].
+
+    Returns:
+        A batch of input activations of shape [b, 1, m].
+
+    Raises:
+        ValueError: If the arguments shapes are wrong or don't match.
+    """
+
+    if (
+        len(x.shape) != 3
+        or len(w.shape) != 2
+        or x.shape[-2] != 1
+        or x.shape[-1] != w.shape[-1]
+    ):
+        raise ValueError("unexpected or non-matching argument shapes")
+
+    conjunct = torch.bitwise_and(x.data, w.data)
+    collapsed = conjunct.any(dim=-1)
+    return from_bool_tensor(collapsed[:, None, :])
