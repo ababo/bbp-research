@@ -37,6 +37,9 @@ class BitTensor:
     def __len__(self) -> int:
         return self.shape[0]
 
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -116,7 +119,8 @@ class Device(Enum):
 
 
 def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
-    """Convert a nested list of bit strings to a BitTensor.
+    """
+    Convert a nested list of bit strings to a BitTensor.
 
     Parses and pads the bit representation to create a BitTensor on the specified device.
 
@@ -169,7 +173,8 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
 
 
 def from_bool_tensor(tensor: torch.Tensor) -> BitTensor:
-    """Convert a Boolean PyTorch tensor to a BitTensor.
+    """
+    Convert a Boolean PyTorch tensor to a BitTensor.
 
     Args:
         tensor: torch.Tensor with dtype=torch.bool.
