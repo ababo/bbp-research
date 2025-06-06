@@ -43,6 +43,22 @@ class BitTensor:
     def __str__(self) -> str:
         return self.format()
 
+    def bitwise_or(self, dim: int | None = None, keepdim: bool = False) -> "BitTensor":
+        """
+        Compute the bitwise OR along a specified dimension.
+
+        Args:
+            dim: Dimension to reduce over. If None, reduces across all dimensions.
+            keepdim: Whether to retain the reduced dimension with size 1.
+
+        Returns:
+            A BitTensor containing the result of the bitwise OR reduction.
+
+        Raises:
+            ValueError: If the dimension is out of range.
+        """
+        raise NotImplementedError
+
     @property
     def shape(self) -> list[int]:
         """Return the shape of the tensor."""

@@ -10,6 +10,12 @@ version = "0.1.0"
 cuda = "12.0"
 
 [tasks]
+lint = "pylint setup.py src/bitwise2 tests/test_bitwise2"
+test = "pytest"
+
+[tasks.build-ext]
+cmd = "python setup.py build"
+env = { TORCH_CUDA_ARCH_LIST = "7.0" }
 
 [dependencies]
 ipykernel = ">=6.29.5,<7"
@@ -19,3 +25,13 @@ numpy = ">=2.2.3,<3"
 pylint = ">=3.3.7,<4"
 pytest = ">=8.3.4,<9"
 pytorch = ">=2.5.1,<3"
+ninja = ">=1.12.1,<2"
+setuptools = ">=75.8.2,<76"
+
+[target.osx-arm64.dependencies]
+cxx-compiler = "*"
+
+[target.linux-64.dependencies]
+cuda-nvcc = "*"
+cudatoolkit-dev = "*"
+gxx_linux-64 = "12.*"
