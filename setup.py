@@ -16,6 +16,7 @@ ext_modules: list[Extension] = [
         sources=[
             "src/bitwise2/ext_cpu/bitwise_or.cc",
         ],
+        extra_compile_args=["-O2"],
     ),
 ]
 
@@ -26,6 +27,7 @@ if cuda.is_available():
             sources=[
                 "src/bitwise2/ext_cuda/bitwise_or.cu",
             ],
+            extra_compile_args={"cxx": ["-O2"], "nvcc": ["-O2"]},
         )
     )
 else:

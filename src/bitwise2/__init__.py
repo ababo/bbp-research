@@ -5,6 +5,13 @@ from typing import cast, Any, TypeAlias, Union
 
 import torch
 
+import bitwise2_ext_cpu
+
+try:
+    import bitwise2_ext_cuda  # type: ignore
+except ImportError:
+    bitwise2_ext_cuda = None
+
 
 class BitTensor:
     """A bit-packed Boolean tensor."""
@@ -42,22 +49,6 @@ class BitTensor:
 
     def __str__(self) -> str:
         return self.format()
-
-    def bitwise_or(self, dim: int | None = None, keepdim: bool = False) -> "BitTensor":
-        """
-        Compute the bitwise OR along a specified dimension.
-
-        Args:
-            dim: Dimension to reduce over. If None, reduces across all dimensions.
-            keepdim: Whether to retain the reduced dimension with size 1.
-
-        Returns:
-            A BitTensor containing the result of the bitwise OR reduction.
-
-        Raises:
-            ValueError: If the dimension is out of range.
-        """
-        raise NotImplementedError
 
     @property
     def shape(self) -> list[int]:
@@ -122,6 +113,31 @@ class BitTensor:
 
         return result + "]"
 
+    def reduce_or(self, dim: int, keepdim: bool = False) -> "BitTensor":
+        """
+        Reduce by OR along a specified dimension.
+
+        Args:
+            dim: Dimension to reduce over (cannot be the last dimension).
+            keepdim: Whether to retain the reduced dimension with size 1.
+
+        Returns:
+            A BitTensor containing the result of the bitwise OR reduction.
+        """
+
+        if dim < 0 or dim >= self._data.dim() - 1:
+            raise ValueError("invalid dimension")
+
+        dev_type = self._data.device.type
+        if dev_type == "cuda" and bitwise2_ext_cuda is not None:
+            data = bitwise2_ext_cuda.bitwise_or_reduce(self._data, dim, keepdim)  # type: ignore
+        elif dev_type == "cpu":
+            data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim, keepdim)  # type: ignore
+        else:
+            raise NotImplementedError(f"non-supported device type {dev_type}")
+
+        return BitTensor(self._bit_length, cast(torch.Tensor, data))
+
 
 BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]
 _IntLiteral: TypeAlias = Union[list[int], list["_IntLiteral"]]
@@ -146,9 +162,6 @@ def bit_tensor(literal: BitLiteral, device: Device = Device.CPU) -> BitTensor:
 
     Returns:
         A BitTensor containing the parsed bit data.
-
-    Raises:
-        ValueError: If the literal is malformed.
     """
 
     def parse_bits(bits: str) -> tuple[list[int], int]:
@@ -197,9 +210,6 @@ def from_bool_tensor(tensor: torch.Tensor) -> BitTensor:
 
     Returns:
         A BitTensor that corresponds to the given tensor.
-
-    Raises:
-        ValueError: If the tensor is scalar, empty or non-Boolean.
     """
 
     if tensor.dtype != torch.bool:

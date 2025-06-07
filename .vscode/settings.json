@@ -28,7 +28,8 @@
     "latex-workshop.formatting.latex": "latexindent",
     "latex-workshop.latex.outDir": "build",
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/src"
+        "${workspaceFolder}/build/lib.linux-x86_64-cpython-312",
+        "${workspaceFolder}/src",
     ],
     "python.analysis.typeCheckingMode": "strict",
     "python.defaultInterpreterPath": ".pixi/envs/default/bin/python",

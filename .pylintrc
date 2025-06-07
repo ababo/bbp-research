@@ -1,0 +1,2 @@
+[TYPECHECK]
+extension-pkg-allow-list=bitwise2_ext_cpu,bitwise2_ext_cuda

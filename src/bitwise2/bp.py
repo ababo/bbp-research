@@ -28,9 +28,6 @@ def activation_sensitivity(
 
     Returns:
         A positive and negative activation sensitivity tensors, each of shape [b, m, n].
-
-    Raises:
-        ValueError: If the arguments shapes are wrong or don't match.
     """
     if (
         len(x.shape) != 3
@@ -58,9 +55,6 @@ def row_activation(x: BitTensor, w: BitTensor) -> BitTensor:
 
     Returns:
         A batch of input activations of shape [b, 1, m].
-
-    Raises:
-        ValueError: If the arguments shapes are wrong or don't match.
     """
 
     if (
