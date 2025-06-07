@@ -130,13 +130,17 @@ class BitTensor:
 
         dev_type = self._data.device.type
         if dev_type == "cuda" and bitwise2_ext_cuda is not None:
-            data = bitwise2_ext_cuda.bitwise_or_reduce(self._data, dim, keepdim)  # type: ignore
+            data = bitwise2_ext_cuda.bitwise_or_reduce(self._data, dim)  # type: ignore
         elif dev_type == "cpu":
-            data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim, keepdim)  # type: ignore
+            data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim)  # type: ignore
         else:
             raise NotImplementedError(f"non-supported device type {dev_type}")
 
-        return BitTensor(self._bit_length, cast(torch.Tensor, data))
+        data = cast(torch.Tensor, data)
+        if keepdim:
+            data.unsqueeze_(dim)
+
+        return BitTensor(self._bit_length, data)
 
 
 BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]
