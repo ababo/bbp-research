@@ -16,18 +16,18 @@ def test_bitwise_or_reduce():
     """Test bitwise_or_reduce()."""
 
     def slow_bitwise_or_reduce(tensor: torch.Tensor, dim: int) -> torch.Tensor:
-        tensor = tensor.transpose(0, dim)
-        result = torch.zeros(tensor.shape[1:], dtype=tensor.dtype, device=tensor.device)
-
-        for i in range(tensor.shape[0]):
-            result |= tensor[i]
-
+        result = tensor
+        for i in range(tensor.shape[dim]):
+            if i == 0:
+                result = tensor.select(dim, i)
+            else:
+                result = torch.bitwise_or(result, tensor.select(dim, i))
         return result
 
     functions: Dict[str, Callable[[torch.Tensor, int], torch.Tensor]]
     functions = {"cpu": bitwise2_ext_cpu.bitwise_or_reduce}  # type: ignore
     if bitwise2_ext_cuda:
-        functions["cuda"] = [bitwise2_ext_cuda.bitwise_or_reduce]  # type: ignore
+        functions["cuda"] = bitwise2_ext_cuda.bitwise_or_reduce  # type: ignore
 
     shape = [10, 20, 30, 40]
     dim = len(shape)
