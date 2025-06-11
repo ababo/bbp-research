@@ -46,7 +46,7 @@ class _BitwiseOrReduceCase:
     def __repr__(self) -> str:
         return (
             f"{self.index:03d}-{self.function.name}({self.function.device_type}), "
-            + f"shape={list(self.tensor.shape)} dim={self.dim}"
+            + f"shape={list(self.tensor.shape)}, dim={self.dim}"
         )
 
 
@@ -99,10 +99,10 @@ def _get_py_bitwise_or_reduces() -> list[_BitwiseOrReduceFunction]:
 
 
 def _generate_bitwise_or_reduce_bench_cases() -> list[_BitwiseOrReduceCase]:
-    specimen = [10, 20, 30, 40]
+    specimen = [10, 20, 30]
 
     shapes = [
-        [s * 100 if i == j else s for i, s in enumerate(specimen)]
+        [s * 10000 if i == j else s for i, s in enumerate(specimen)]
         for j in range(len(specimen))
     ]
 
