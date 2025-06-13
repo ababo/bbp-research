@@ -60,7 +60,10 @@ def _get_ext_bitwise_or_reduces() -> list[_BitwiseOrReduceFunction]:
     if bitwise2_ext_cuda:
         ext_bitwise_or_reduces.append(
             _BitwiseOrReduceFunction(
-                "ext", "cuda", bitwise2_ext_cuda.bitwise_or_reduce  # type: ignore
+                "ext",
+                "cuda",
+                # Use CPU version of the C++ extension that calls CUDA via Torch.
+                bitwise2_ext_cpu.bitwise_or_reduce,  # type: ignore
             )
         )
     return ext_bitwise_or_reduces
@@ -83,6 +86,7 @@ def _generate_bitwise_or_reduce_test_cases() -> list[_BitwiseOrReduceCase]:
 
 @pytest.mark.parametrize("case", _generate_bitwise_or_reduce_test_cases(), ids=repr)
 def test_bitwise_or_reduce(case: _BitwiseOrReduceCase):
+    """Test bitwise2_ext_cpu.bitwise_or_reduce()."""
     assert case.expected is not None
     assert torch.equal(
         case.function.function(case.tensor, case.dim).to(device="cpu"), case.expected
@@ -132,4 +136,5 @@ def _generate_bitwise_or_reduce_bench_cases() -> list[_BitwiseOrReduceCase]:
 def test_bitwise_or_reduce_perf(
     benchmark: BenchmarkFixture, case: _BitwiseOrReduceCase
 ):
+    """Benchmark _bitwise_or_reduce() and bitwise2_ext_cpu.bitwise_or_reduce()."""
     benchmark(case.function.function, case.tensor, case.dim)

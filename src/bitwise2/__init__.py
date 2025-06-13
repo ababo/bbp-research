@@ -7,11 +7,6 @@ import torch
 
 import bitwise2_ext_cpu
 
-try:
-    import bitwise2_ext_cuda  # type: ignore
-except ImportError:
-    bitwise2_ext_cuda = None
-
 
 class BitTensor:
     """A bit-packed Boolean tensor."""
@@ -128,14 +123,7 @@ class BitTensor:
         if dim < 0 or dim >= self._data.dim() - 1:
             raise ValueError("invalid dimension")
 
-        dev_type = self._data.device.type
-        if dev_type == "cuda" and bitwise2_ext_cuda is not None:
-            data = bitwise2_ext_cuda.bitwise_or_reduce(self._data, dim)  # type: ignore
-        elif dev_type == "cpu":
-            data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim)  # type: ignore
-        else:
-            raise NotImplementedError(f"non-supported device type {dev_type}")
-
+        data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim)  # type: ignore
         data = cast(torch.Tensor, data)
         if keepdim:
             data.unsqueeze_(dim)
