@@ -15,6 +15,7 @@ ext_modules: list[Extension] = [
         name="bitwise2_ext_cpu",
         sources=[
             "src/bitwise2/ext_cpu/bitwise_or_reduce.cc",
+            "src/bitwise2/ext_cpu/error_projection.cc",
             "src/bitwise2/ext_cpu/module.cc",
         ],
         extra_compile_args=["-O2"],
