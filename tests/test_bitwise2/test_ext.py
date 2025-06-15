@@ -10,7 +10,7 @@ import torch
 import bitwise2_ext_cpu
 
 try:
-    import bitwise2_ext_cuda  # type: ignore
+    import bitwise2_ext_cuda
 except ImportError:
     bitwise2_ext_cuda = None
 
@@ -54,7 +54,7 @@ def _get_ext_bitwise_or_reduces() -> list[_BitwiseOrReduceFunction]:
     ext_bitwise_or_reduces: list[_BitwiseOrReduceFunction]
     ext_bitwise_or_reduces = [
         _BitwiseOrReduceFunction(
-            "ext", "cpu", bitwise2_ext_cpu.bitwise_or_reduce  # type: ignore
+            "ext", "cpu", bitwise2_ext_cpu.bitwise_or_reduce,
         )
     ]
     if bitwise2_ext_cuda:
@@ -63,7 +63,7 @@ def _get_ext_bitwise_or_reduces() -> list[_BitwiseOrReduceFunction]:
                 "ext",
                 "cuda",
                 # Use CPU version of the C++ extension that calls CUDA via Torch.
-                bitwise2_ext_cpu.bitwise_or_reduce,  # type: ignore
+                bitwise2_ext_cpu.bitwise_or_reduce,
             )
         )
     return ext_bitwise_or_reduces

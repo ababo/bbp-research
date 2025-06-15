@@ -123,8 +123,7 @@ class BitTensor:
         if dim < 0 or dim >= self._data.dim() - 1:
             raise ValueError("invalid dimension")
 
-        data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim)  # type: ignore
-        data = cast(torch.Tensor, data)
+        data = bitwise2_ext_cpu.bitwise_or_reduce(self._data, dim)
         if keepdim:
             data.unsqueeze_(dim)
 

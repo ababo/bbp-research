@@ -15,13 +15,19 @@ lint = "pylint setup.py src/bitwise2 tests/test_bitwise2"
 test = "pytest -m 'not benchmark'"
 
 [tasks.build-ext]
-cmd = "python setup.py build"
 env = { TORCH_CUDA_ARCH_LIST = "7.0;8.0;8.6;8.9" }
+cmd = """
+    python setup.py build && \
+    stubgen --include-docstrings -o build/lib.linux-x86_64-cpython-312 \
+        -m bitwise2_ext_cpu \
+        -m bitwise2_ext_cuda
+"""
 
 [dependencies]
 ipykernel = ">=6.29.5,<7"
 libgfortran5 = ">=14.2.0,<15"
 matplotlib = ">=3.10.1,<4"
+mypy = ">=1.16.0,<2"
 numpy = ">=2.2.3,<3"
 pylint = ">=3.3.7,<4"
 pytest = ">=8.3.4,<9"
