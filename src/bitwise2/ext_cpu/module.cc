@@ -25,7 +25,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           "Args:\n"
           "    sm (torch.Tensor): int32 tensor of shape [b, m, n].\n"
           "        Batch of bit-packed negative sensitivity row sequences.\n"
-          "    e (torch.Tensor): int32 tensor of shape [b, m].\n"
+          "    e (torch.Tensor): int32 tensor of shape [b, k] (k * 32 >= m).\n"
           "        Batch of bit-packed error rows. Each row bit designates \n"
           "        an error state of element in the corresponding sensitivity "
           "sequence.\n\n"

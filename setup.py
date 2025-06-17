@@ -27,6 +27,7 @@ if cuda.is_available():
         CUDAExtension(
             name="bitwise2_ext_cuda",
             sources=[
+                "src/bitwise2/ext_cuda/error_projection.cu",
                 "src/bitwise2/ext_cuda/module.cc",
             ],
             extra_compile_args={"cxx": ["-O2"], "nvcc": ["-O2"]},
