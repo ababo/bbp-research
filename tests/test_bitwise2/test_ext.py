@@ -175,7 +175,7 @@ def _get_ext_error_projections() -> list[_ErrorProjectionFunction]:
     if bitwise2_ext_cuda:
         ext_error_projections.append(
             _ErrorProjectionFunction(
-                "ext-cpu(cuda)",
+                "ext-cpu",
                 "cuda",
                 # Use CPU version of the C++ extension that calls CUDA via Torch.
                 bitwise2_ext_cpu.error_projection,
@@ -303,3 +303,53 @@ def test_error_projection(case: _ErrorProjectionCase):
     assert torch.equal(
         case.function.function(case.sm, case.e).to(device="cpu"), case.expected
     )
+
+
+def _generate_error_projection_bench_cases() -> list[_ErrorProjectionCase]:
+    specimen = [512, 8, 16]
+    factors = [16, 4, 16]
+
+    sm_shapes = [specimen] + [
+        [s * factors[i] if i == j else s for i, s in enumerate(specimen)]
+        for j in range(len(specimen))
+    ]
+
+    sms = list(
+        map(
+            lambda shape: 1 << torch.randint(0, 32, shape, dtype=torch.int32), sm_shapes
+        )
+    )
+
+    es = list(
+        map(
+            lambda shape: torch.randint(
+                -(2**31),
+                2**31 - 1,
+                [shape[0], (shape[1] + 31) // 32],
+                dtype=torch.int32,
+            ),
+            sm_shapes,
+        )
+    )
+
+    cases = [
+        _ErrorProjectionCase(
+            func,
+            sm.to(device=func.device_type),
+            e.to(device=func.device_type),
+        )
+        for func in _get_ext_error_projections()
+        for sm, e in zip(sms, es)
+    ]
+
+    cases = sorted(cases, key=lambda c: (c.sm.shape, c.function.device_type))
+    for i, case in enumerate(cases):
+        case.index = i
+    return cases
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize("case", _generate_error_projection_bench_cases(), ids=repr)
+def test_error_projection_perf(benchmark: BenchmarkFixture, case: _ErrorProjectionCase):
+    """Benchmark bitwise2_ext_cpu.bitwise_or_reduce() and bitwise2_ext_cuda.bitwise_or_reduce()."""
+    benchmark(case.function.function, case.sm, case.e)
