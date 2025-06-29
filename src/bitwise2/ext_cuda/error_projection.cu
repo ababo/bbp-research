@@ -3,7 +3,7 @@
 
 enum class RowKind : uint8_t { kZeroed = 0, kCorrect, kIncorrect };
 
-static const int kThreadsPerBlock = 256;
+static const int kThreadsPerBlock = 32;
 
 static __device__ inline bool is_error(const int32_t* e_item, int64_t index) {
     return e_item[index / 32] & (1 << (index % 32));
@@ -47,7 +47,6 @@ __global__ void process_batch_item_kernel(const int32_t* sm, const int32_t* e,
     }
     __syncthreads();
 
-    __shared__ int mismatch;
     for (int64_t i = 0; i < height; ++i) {
         if (row_kinds[i] != RowKind::kIncorrect) {
             continue;
@@ -56,43 +55,37 @@ __global__ void process_batch_item_kernel(const int32_t* sm, const int32_t* e,
         for (int64_t j = thread_id; j < width; j += num_threads) {
             tmp_row[j] = result_item[j] | sm_item[i * width + j];
         }
+
+        __shared__ bool update_result;
+        update_result = true;
         __syncthreads();
 
-        if (thread_id == 0) {
-            mismatch = 1;
-        }
-        __syncthreads();
-
-        for (int64_t j = 0; j < height; ++j) {
+        for (int64_t j = thread_id; j < height; j += num_threads) {
             if (row_kinds[j] != RowKind::kCorrect) {
                 continue;
             }
 
-            if (thread_id == 0) {
-                mismatch = 0;
-            }
-            __syncthreads();
-
-            for (int64_t k = thread_id; k < width; k += num_threads) {
+            bool spoils = true;
+            for (int64_t k = 0; k < width; ++k) {
                 int32_t val = sm_item[j * width + k] & tmp_row[k];
                 if (val != sm_item[j * width + k]) {
-                    atomicOr(&mismatch, 1);
+                    spoils = false;
                     break;
                 }
             }
-            __syncthreads();
 
-            if (mismatch == 0) {
-                break;
+            if (spoils) {
+                update_result = false;
             }
         }
+        __syncthreads();
 
-        if (mismatch != 0) {
+        if (update_result) {
             for (int64_t j = thread_id; j < width; j += num_threads) {
                 result_item[j] = tmp_row[j];
             }
-            __syncthreads();
         }
+        __syncthreads();
     }
 }
 
