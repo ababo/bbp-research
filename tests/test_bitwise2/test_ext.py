@@ -181,13 +181,13 @@ def _get_ext_error_projections() -> list[_ErrorProjectionFunction]:
                 bitwise2_ext_cpu.error_projection,
             )
         )
-        # ext_error_projections.append(
-        #     _ErrorProjectionFunction(
-        #         "ext-cuda",
-        #         "cuda",
-        #         bitwise2_ext_cuda.error_projection,
-        #     )
-        # )
+        ext_error_projections.append(
+            _ErrorProjectionFunction(
+                "ext-cuda",
+                "cuda",
+                bitwise2_ext_cuda.error_projection,
+            )
+        )
     return ext_error_projections
 
 

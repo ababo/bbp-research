@@ -7,7 +7,9 @@
         "cuda",
         "cudatoolkit",
         "docstrings",
+        "dtype",
         "elementwise",
+        "fprintf",
         "frombuffer",
         "Golbert",
         "ipykernel",
@@ -27,6 +29,7 @@
         "pytest",
         "setuptools",
         "stubgen",
+        "syncthreads",
         "underexplored",
         "XNOR"
     ],
