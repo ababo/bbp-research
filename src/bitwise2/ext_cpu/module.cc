@@ -31,6 +31,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           "sequence.\n\n"
           "Returns:\n"
           "    torch.Tensor: int32 tensor of shape [b, n]. Batch of\n"
-          "        optimal bit-packed difference masks.",
+          "        near-optimal bit-packed difference masks.",
           py::arg("sm"), py::arg("e"));
 }
