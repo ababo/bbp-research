@@ -6,7 +6,6 @@ from typing import Tuple
 import torch
 
 from bitwise2 import BitTensor, from_bool_tensor
-
 import bitwise2_ext_cpu
 
 try:

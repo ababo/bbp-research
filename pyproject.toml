@@ -1,0 +1,6 @@
+[tool.pylint.MASTER]
+init-hook = 'import sys; sys.path.insert(0, "src")'
+extension-pkg-allow-list = ["bitwise2_ext_cpu", "bitwise2_ext_cuda"]
+
+[tool.pylint.IMPORTS]
+known-third-party = ["bitwise2", "bitwise2_ext_cpu", "bitwise2_ext_cuda"]
