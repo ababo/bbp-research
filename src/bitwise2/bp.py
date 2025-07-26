@@ -28,27 +28,21 @@ def activation_sensitivity(
     Compute positive and negative activation sensitivity tensors.
 
     Args:
-        x: A batch of inputs with shape [b, 1, n].
+        x: A batch of inputs with shape [b, n].
         w: Weights with shape [m, n].
         dependency: Whether to compute sensitivity with respect to weights or inputs.
 
     Returns:
         A positive and negative activation sensitivity tensors, each of shape [b, m, n].
     """
-    if (
-        len(x.shape) != 3
-        or len(w.shape) != 2
-        or x.shape[-2] != 1
-        or x.shape[-1] != w.shape[-1]
-    ):
+    if len(x.shape) != 2 or len(w.shape) != 2 or x.shape[1] != w.shape[1]:
         raise ValueError("unexpected or non-matching argument shapes")
 
-    sm = x.data & w.data
-    non_zero = torch.any(sm != 0, dim=-1).unsqueeze(-1)
-    src = x if dependency == SensitivityDependency.WEIGHTS else w
-    sp = torch.where(non_zero, torch.zeros_like(sm), src.data)
-    bit_length = x.shape[-1]
-    return BitTensor(bit_length, sp), BitTensor(bit_length, sm)
+    sm = x.data.unsqueeze(1) & w.data
+    non_zero = (sm != 0).any(dim=-1, keepdim=True)
+    src = x.data.unsqueeze(1) if dependency == SensitivityDependency.WEIGHTS else w.data
+    sp = torch.where(non_zero, 0, src)
+    return BitTensor(x.shape[-1], sp), BitTensor(x.shape[-1], sm)
 
 
 def error_projection(sm: BitTensor, e: BitTensor) -> BitTensor:
@@ -90,21 +84,17 @@ def row_activation(x: BitTensor, w: BitTensor) -> BitTensor:
     Compute Row Activation for a batch of inputs and weights.
 
     Args:
-        x: A batch of inputs with shape [b, 1, n].
+        x: A batch of inputs with shape [b, n].
         w: Weights with shape [m, n].
 
     Returns:
-        A batch of input activations of shape [b, 1, m].
+        A batch of input activations of shape [b, m].
     """
 
-    if (
-        len(x.shape) != 3
-        or len(w.shape) != 2
-        or x.shape[-2] != 1
-        or x.shape[-1] != w.shape[-1]
-    ):
+    if len(x.shape) != 2 or len(w.shape) != 2 or x.shape[1] != w.shape[1]:
         raise ValueError("unexpected or non-matching argument shapes")
 
-    conjunct = torch.bitwise_and(x.data, w.data)
+    x_exp = x.data.unsqueeze(1)
+    conjunct = torch.bitwise_and(x_exp, w.data)
     collapsed = conjunct.any(dim=-1)
-    return from_bool_tensor(collapsed[:, None, :])
+    return from_bool_tensor(collapsed)
