@@ -20,14 +20,13 @@ class FullyConnectedLayer:
 
         Args:
             weights: Weights with shape [m, n].
-            biases: Biases with shape [1, m].
+            biases: Biases with shape [m].
         """
 
         if (
             len(weights.shape) != 2
-            or len(biases.shape) != 2
-            or weights.shape[0] != biases.shape[1]
-            or biases.shape[0] != 1
+            or len(biases.shape) != 1
+            or weights.shape[0] != biases.shape[0]
         ):
             raise ValueError("unexpected or non-matching argument shapes")
 
@@ -39,14 +38,14 @@ class FullyConnectedLayer:
         Computes the layer's output for the given inputs.
 
         Args:
-            inputs: A batch of inputs with shape [b, 1, n].
+            inputs: A batch of inputs with shape [b, n].
         """
 
         z = bp.row_activation(inputs, self._weights)
         z.data.bitwise_xor_(self._biases.data)
         return z
 
-    def update(self, inputs: BitTensor, errors: BitTensor) -> BitTensor:
+    def update(self, _inputs: BitTensor, _errors: BitTensor) -> BitTensor:
         """Updates weights and biases and returns estimated input errors."""
 
         raise NotImplementedError
