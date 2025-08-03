@@ -98,3 +98,21 @@ def row_activation(x: BitTensor, w: BitTensor) -> BitTensor:
     conjunct = torch.bitwise_and(x_exp, w.data)
     collapsed = conjunct.any(dim=-1)
     return from_bool_tensor(collapsed)
+
+
+def specialized_activation_sensitivity(sp: BitTensor, sm: BitTensor) -> BitTensor:
+    """
+    Compute specialized activation sensitivity tensor for given sensitivity tensors.
+
+    Args:
+        sp: A positive sensitivity tensor with shape [b, m, n].
+        sm: A negative sensitivity tensor with shape [b, m, n].
+
+    Returns:
+        A specialized sensitivity tensor of shape [b, m, n].
+    """
+
+    keep_rows = (sm.data & (sm.data - 1) != 0).any(dim=-1).logical_not_()
+    keep_rows.logical_and_((sm.data != 0).sum(dim=-1) <= 1)
+    sm_data = sm.data * keep_rows.unsqueeze_(-1)
+    return BitTensor(sp.shape[-1], sm_data.bitwise_or_(sp.data))
