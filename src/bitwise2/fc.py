@@ -39,6 +39,9 @@ class FullyConnectedLayer:
 
         Args:
             inputs: A batch of inputs with shape [b, n].
+
+        Returns:
+            A batch of input activations of shape [b, m].
         """
 
         z = bp.row_activation(inputs, self._weights)

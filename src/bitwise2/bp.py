@@ -112,7 +112,47 @@ def specialized_activation_sensitivity(sp: BitTensor, sm: BitTensor) -> BitTenso
         A specialized sensitivity tensor of shape [b, m, n].
     """
 
+    if len(sp.shape) != 3 or sp.shape != sm.shape:
+        raise ValueError("unexpected or non-matching argument shapes")
+
     keep_rows = (sm.data & (sm.data - 1) != 0).any(dim=-1).logical_not_()
     keep_rows.logical_and_((sm.data != 0).sum(dim=-1) <= 1)
     sm_data = sm.data * keep_rows.unsqueeze_(-1)
     return BitTensor(sp.shape[-1], sm_data.bitwise_or_(sp.data))
+
+
+def specialized_error_projection(ss: BitTensor, e: BitTensor) -> BitTensor:
+    """
+    Perform specialized error projection for a batch of sensitivity sequences.
+
+    Args:
+        ss: A batch of specialized sensitivity rows with shape [b, m, n].
+
+        e: A batch of error rows of shape [b, m]. Each row bit designates an
+           error state of element in the corresponding sensitivity sequence.
+
+    Returns:
+        A batch of near-optimal difference masks of shape [b, n].
+    """
+
+    if len(ss.shape) != 3 or ss.shape[:-1] != e.shape:
+        raise ValueError("unexpected or non-matching argument shapes")
+
+    row_indices = (
+        torch.arange(ss.shape[1], device=ss.data.device)
+        .unsqueeze_(0)
+        .expand(ss.shape[0], ss.shape[1])
+    )
+    bit_masks = 1 << (row_indices % 32)
+    e_group = torch.gather(e.data, 1, row_indices // 32)
+
+    i_bits = e_group & bit_masks != 0
+    i_ss = ss.data * i_bits.unsqueeze(2)
+    i_row = bitwise2_ext_cpu.bitwise_or_reduce(i_ss, 1)
+
+    c_bits = e_group & bit_masks == 0
+    c_ss = ss.data * c_bits.unsqueeze(2)
+    c_row = bitwise2_ext_cpu.bitwise_or_reduce(c_ss, 1)
+
+    mask = i_row.bitwise_and_(c_row.bitwise_not_())
+    return BitTensor(ss.shape[-1], mask)
