@@ -77,6 +77,81 @@ def test_bit_tensor_format():
     )
 
 
+def test_bit_tensor_sample_random_bit_():
+    """Test BitTensor.sample_random_bit_()."""
+
+    d = torch.tensor(
+        [
+            [
+                0b00001000000000000000000000000001,
+                0b10000000000000000000000000000000,
+                0b11111111111111111111111111111010,
+            ],
+            [
+                0b10000000000000100000000000000000,
+                0b00000000000000000000000000000001,
+                0b11111111111111111111111111110101,
+            ],
+        ],
+        dtype=torch.uint32,
+    ).to(dtype=torch.int32)
+
+    row0_ok = [False, False, False, False, False]
+    row1_ok = [False, False, False, False, False]
+
+    for _ in range(100):
+        tensor = bitwise2.BitTensor(68, d.clone())
+        tensor.sample_random_bit_()
+        print(tensor)
+
+        row0_0 = tensor[0] == bitwise2.bit_tensor(
+            "10000000000000000000000000000000_00000000000000000000000000000000_0000",
+        )
+        row0_1 = tensor[0] == bitwise2.bit_tensor(
+            "00000000000000000000000000010000_00000000000000000000000000000000_0000",
+        )
+        row0_2 = tensor[0] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_00000000000000000000000000000001_0000",
+        )
+        row0_3 = tensor[0] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_00000000000000000000000000000000_0100",
+        )
+        row0_4 = tensor[0] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_00000000000000000000000000000000_0001",
+        )
+        assert row0_0 or row0_1 or row0_2 or row0_3 or row0_4
+        row0_ok[0] |= row0_0
+        row0_ok[1] |= row0_1
+        row0_ok[2] |= row0_2
+        row0_ok[3] |= row0_3
+        row0_ok[4] |= row0_4
+
+        row1_0 = tensor[1] == bitwise2.bit_tensor(
+            "00000000000000000000000000000001_00000000000000000000000000000000_0000",
+        )
+        row1_1 = tensor[1] == bitwise2.bit_tensor(
+            "00000000000000000100000000000000_00000000000000000000000000000000_0000",
+        )
+        row1_2 = tensor[1] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_10000000000000000000000000000000_0000",
+        )
+        row1_3 = tensor[1] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_00000000000000000000000000000000_1000",
+        )
+        row1_4 = tensor[1] == bitwise2.bit_tensor(
+            "00000000000000000000000000000000_00000000000000000000000000000000_0010",
+        )
+        assert row1_0 or row1_1 or row1_2 or row1_3 or row1_4
+        row1_ok[0] |= row1_0
+        row1_ok[1] |= row1_1
+        row1_ok[2] |= row1_2
+        row1_ok[3] |= row1_3
+        row1_ok[4] |= row1_4
+
+    assert row0_ok == [True, True, True, True, True]
+    assert row1_ok == [True, True, True, True, True]
+
+
 def test_bit_tensor_shape():
     """Test BitTensor.shape."""
 

@@ -1,6 +1,7 @@
 """BitTensor and related generic Boolean tensor operations."""
 
 from enum import Enum
+import math
 from typing import cast, Any, TypeAlias, Union
 
 import torch
@@ -128,6 +129,117 @@ class BitTensor:
             data.unsqueeze_(dim)
 
         return BitTensor(self._bit_length, data)
+
+    def sample_random_bit_(self) -> "BitTensor":
+        """
+        Randomly select one active bit per row.
+
+        Returns:
+            The same BitTensor, modified in-place with at most one bit set per row.
+        """
+
+        def zero_last_n_bits_(tensor: torch.Tensor, n: int) -> torch.Tensor:
+            num_words = tensor.shape[-1]
+            full_words = n // 32
+            remainder = n % 32
+            start = max(0, num_words - full_words)
+            tensor[..., start:] = 0
+            partial_idx = num_words - full_words - 1
+            if partial_idx >= 0 and remainder:
+                keep_bits = 32 - remainder
+                mask = (1 << keep_bits) - 1
+                tensor[..., partial_idx] &= mask
+            return tensor
+
+        def popcount(tensor: torch.Tensor) -> torch.Tensor:
+            x = tensor.clone()
+            x += -((x >> 1) & 0x55555555)
+            x = (x & 0x33333333) + ((x >> 2) & 0x33333333)
+            x += x >> 4
+            x &= 0x0F0F0F0F
+            x += x >> 8
+            x += x >> 16
+            x &= 0x3F
+            return x
+
+        def sample_random_bit_(tensor: torch.Tensor) -> torch.Tensor:
+            device = tensor.device
+            shape = tensor.shape
+            batch_shape = shape[:-2]
+            num_rows = shape[-2]
+            num_words = shape[-1]
+            flat_batch = math.prod(batch_shape) if batch_shape else 1
+            tensor_flat = tensor.reshape(flat_batch, num_rows, num_words)
+
+            # Popcount per word per row
+            word_pops = popcount(tensor_flat)
+
+            # Total set bits per row
+            total_pops = word_pops.sum(dim=-1)
+
+            # Random index k in [0, total_pops)
+            random_k = torch.zeros_like(total_pops, dtype=torch.int64)
+            mask = total_pops > 0
+            if mask.any():
+                r = torch.rand(total_pops[mask].shape, device=device)
+                random_k[mask] = torch.floor(r * total_pops[mask].float()).to(
+                    torch.int64
+                )
+
+            # Cumulative popcounts to find word
+            cum_pops = word_pops.cumsum(dim=-1)
+            col_mask = cum_pops > random_k.unsqueeze(-1)
+            inv_mask = torch.ones_like(col_mask, dtype=torch.uint8) - col_mask.to(
+                torch.uint8
+            )
+            selected_word = torch.argmin(inv_mask, dim=-1)
+
+            # Previous cumulative
+            prev_word = (selected_word - 1).clamp(min=0)
+            prev_cum = torch.gather(cum_pops, -1, prev_word.unsqueeze(-1)).squeeze(-1)
+            prev_cum = torch.where(
+                selected_word > 0, prev_cum, torch.zeros_like(prev_cum)
+            )
+
+            # Local k within word
+            local_k = random_k - prev_cum
+
+            # Get selected word value
+            selected_val = torch.gather(
+                tensor_flat, -1, selected_word.unsqueeze(-1)
+            ).squeeze(-1)
+
+            # Find bit position in word
+            bit_indices = torch.arange(32, device=device, dtype=torch.int32)
+            bits_set = ((selected_val.unsqueeze(-1) & (1 << bit_indices)) != 0).to(
+                torch.int32
+            )
+            cum_bits = bits_set.cumsum(dim=-1)
+            bit_mask = cum_bits >= (local_k + 1).unsqueeze(-1)
+            bit_inv_mask = torch.ones_like(bit_mask, dtype=torch.uint8) - bit_mask.to(
+                torch.uint8
+            )
+            selected_bit = torch.argmin(bit_inv_mask, dim=-1)
+
+            # Create bit value
+            bit_value = (1 << selected_bit).to(tensor_flat.dtype)
+
+            # Modify in place
+            tensor_flat.zero_()
+            active_batches, active_rows = torch.nonzero(mask, as_tuple=True)
+            if active_batches.numel() > 0:
+                active_selected_words = selected_word[active_batches, active_rows]
+                active_bit_values = bit_value[active_batches, active_rows]
+                tensor_flat[active_batches, active_rows, active_selected_words] = (
+                    active_bit_values
+                )
+
+            return tensor
+
+        n = self._data.shape[-1] * 32 - self._bit_length
+        zero_last_n_bits_(self._data, n)
+        sample_random_bit_(self._data)
+        return self
 
 
 BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]

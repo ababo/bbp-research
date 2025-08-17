@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "argmin",
         "Backpropagation",
         "cmdclass",
         "convolutional",
@@ -23,6 +24,8 @@
         "numpy",
         "nvcc",
         "pixi",
+        "Popcount",
+        "popcounts",
         "PYBIND",
         "pycache",
         "pylint",
