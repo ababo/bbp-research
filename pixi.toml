@@ -10,9 +10,9 @@ version = "0.1.0"
 cuda = "12.2"
 
 [tasks]
-bench = "pytest -m benchmark --benchmark-sort=name --benchmark-columns=mean"
+bench = "pytest --import-mode=importlib -m benchmark --benchmark-sort=name --benchmark-columns=mean"
 lint = "pylint setup.py src/bitwise2 tests/test_bitwise2"
-test = "pytest -m 'not benchmark'"
+test = "pytest --import-mode=importlib -m 'not benchmark'"
 
 [tasks.build-ext]
 env = { TORCH_CUDA_ARCH_LIST = "7.0;8.0;8.6;8.9" }
