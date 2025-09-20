@@ -14,9 +14,9 @@ ext_modules: list[Extension] = [
     CppExtension(
         name="bitwise2_ext_cpu",
         sources=[
-            "src/bitwise2/ext_cpu/bitwise_or_reduce.cc",
             "src/bitwise2/ext_cpu/error_projection.cc",
             "src/bitwise2/ext_cpu/module.cc",
+            "src/bitwise2/ext_cpu/reduce.cc",
         ],
         extra_compile_args=["-O2"],
     ),

@@ -3,7 +3,9 @@
 
 #include <vector>
 
-torch::Tensor bitwise_or_reduce(torch::Tensor input, int64_t dim) {
+using ReduceOp = torch::Tensor (*)(const torch::Tensor&, const torch::Tensor&);
+
+static torch::Tensor reduce(torch::Tensor input, ReduceOp op, int64_t dim) {
     TORCH_CHECK(input.numel() > 0, "Input tensor is empty");
     TORCH_CHECK(input.dim() >= 1,
                 "Input tensor must have at least 1 dimension");
@@ -22,7 +24,7 @@ torch::Tensor bitwise_or_reduce(torch::Tensor input, int64_t dim) {
         // Serial execution for small reduction sizes.
         torch::Tensor result = input.select(dim, 0).clone();
         for (int64_t i = 1; i < reduce_size; i++) {
-            result = torch::bitwise_or(result, input.select(dim, i));
+            result = op(result, input.select(dim, i));
         }
         return result;
     } else {
@@ -47,7 +49,7 @@ torch::Tensor bitwise_or_reduce(torch::Tensor input, int64_t dim) {
                 // Compute partial OR for this chunk.
                 torch::Tensor partial = input.select(dim, chunk_start).clone();
                 for (int64_t i = chunk_start + 1; i < chunk_end; i++) {
-                    partial = torch::bitwise_or(partial, input.select(dim, i));
+                    partial = op(partial, input.select(dim, i));
                 }
                 partial_results[s] = partial;
             }
@@ -57,9 +59,17 @@ torch::Tensor bitwise_or_reduce(torch::Tensor input, int64_t dim) {
         torch::Tensor result = partial_results[0];
         for (int64_t i = 1; i < num_chunks; i++) {
             if (partial_results[i].defined()) {
-                result = torch::bitwise_or(result, partial_results[i]);
+                result = op(result, partial_results[i]);
             }
         }
         return result;
     }
+}
+
+torch::Tensor bitwise_and_reduce(torch::Tensor input, int64_t dim) {
+    return reduce(input, torch::bitwise_and, dim);
+}
+
+torch::Tensor bitwise_or_reduce(torch::Tensor input, int64_t dim) {
+    return reduce(input, torch::bitwise_or, dim);
 }

@@ -24,6 +24,11 @@ class BitTensor:
             and torch.equal(self._data, other._data)
         )
 
+    def __getitem__(self, index: int) -> "BitTensor":
+        if len(self._data.shape) < 2:
+            raise ValueError("bit indexing not supported")
+        return BitTensor(self._bit_length, self._data[index])
+
     def __init__(self, bit_length: int, data: torch.Tensor):
         assert data.dtype == torch.int32
         assert len(data) != 0
@@ -31,11 +36,6 @@ class BitTensor:
 
         self._bit_length = bit_length
         self._data = data
-
-    def __getitem__(self, index: int) -> "BitTensor":
-        if len(self._data.shape) < 2:
-            raise ValueError("bit indexing not supported")
-        return BitTensor(self._bit_length, self._data[index])
 
     def __len__(self) -> int:
         return self.shape[0]
@@ -108,6 +108,27 @@ class BitTensor:
                 result += "\n" + prefix + fmt(self[i])
 
         return result + "]"
+
+    def reduce_and(self, dim: int, keepdim: bool = False) -> "BitTensor":
+        """
+        Reduce by AND along a specified dimension.
+
+        Args:
+            dim: Dimension to reduce over (cannot be the last dimension).
+            keepdim: Whether to retain the reduced dimension with size 1.
+
+        Returns:
+            A BitTensor containing the result of the bitwise OR reduction.
+        """
+
+        if dim < 0 or dim >= self._data.dim() - 1:
+            raise ValueError("invalid dimension")
+
+        data = bitwise2_ext_cpu.bitwise_and_reduce(self._data, dim)
+        if keepdim:
+            data.unsqueeze_(dim)
+
+        return BitTensor(self._bit_length, data)
 
     def reduce_or(self, dim: int, keepdim: bool = False) -> "BitTensor":
         """

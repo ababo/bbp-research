@@ -48,7 +48,7 @@ class FullyConnectedLayer:
         z.data.bitwise_xor_(self._biases.data)
         return z
 
-    def update(self, _inputs: BitTensor, _errors: BitTensor) -> BitTensor:
+    def update(self, inputs: BitTensor, errors: BitTensor) -> BitTensor:
         """Updates weights and biases and returns estimated input errors."""
 
         raise NotImplementedError
