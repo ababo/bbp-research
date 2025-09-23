@@ -159,6 +159,8 @@ class BitTensor:
             The same BitTensor, modified in-place with at most one bit set per row.
         """
 
+        # pylint: disable-msg=too-many-locals,too-many-statements
+
         def zero_last_n_bits_(tensor: torch.Tensor, n: int) -> torch.Tensor:
             num_words = tensor.shape[-1]
             full_words = n // 32
@@ -261,6 +263,22 @@ class BitTensor:
         zero_last_n_bits_(self._data, n)
         sample_random_bit_(self._data)
         return self
+
+    def to_bool_tensor(self) -> torch.Tensor:
+        """Construct a corresponding Boolean PyTorch tensor."""
+
+        positions = torch.arange(self._bit_length, device=self._data.device)
+        words = positions // 32
+        shifts = positions % 32
+
+        batch_shape = self._data.shape[:-1]
+        ndim = len(batch_shape)
+        words = words.reshape((1,) * ndim + (-1,)).expand(*batch_shape, -1)
+        shifts = shifts.reshape((1,) * ndim + (-1,)).expand(*batch_shape, -1)
+
+        selected_words = torch.gather(self._data, -1, words)
+        bits = (selected_words.to(torch.int64) >> shifts) & 1
+        return bits.to(torch.bool)
 
 
 BitLiteral: TypeAlias = Union[str, list["BitLiteral"]]
