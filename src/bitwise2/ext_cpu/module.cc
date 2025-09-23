@@ -29,17 +29,15 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           py::arg("tensor"), py::arg("dim"));
 
     m.def("error_projection", &error_projection,
-          "Perform error projection for a batch of Boolean sensitivity "
-          "sequences.\n\n"
+          "Perform error projection for sensitivity row groups.\n\n"
           "Args:\n"
-          "    sm (torch.Tensor): int32 tensor of shape [b, m, n].\n"
-          "        Batch of bit-packed negative sensitivity row sequences.\n"
-          "    e (torch.Tensor): int32 tensor of shape [b, k] (k * 32 >= m).\n"
-          "        Batch of bit-packed error rows. Each row bit designates \n"
-          "        an error state of element in the corresponding sensitivity "
-          "sequence.\n\n"
+          "    sm (torch.Tensor): int32 tensor of shape [m, b, n].\n"
+          "        Bit-packed sensitivity row groups.\n"
+          "    e (torch.Tensor): int32 tensor of shape [m, k] (k * 32 >= b).\n"
+          "        Bit-packed error rows. Each error row bit marks the error \n"
+          "        state of the corresponding row within the sensitivity group.\n\n"
           "Returns:\n"
-          "    torch.Tensor: int32 tensor of shape [b, n]. Batch of\n"
-          "        near-optimal bit-packed difference masks.",
+          "    torch.Tensor: int32 tensor of shape [m, n].\n"
+          "        Near-optimal difference rows.",
           py::arg("sm"), py::arg("e"));
 }

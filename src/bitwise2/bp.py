@@ -47,16 +47,16 @@ def activation_sensitivity(
 
 def error_projection(sm: BitTensor, e: BitTensor) -> BitTensor:
     """
-    Perform error projection for a batch of negative sensitivity sequences.
+    Perform error projection for sensitivity row groups.
 
     Args:
-        sm: A batch of sensitivity rows with shape [b, m, n].
+        sm: Sensitivity row groups of shape [m, b, n].
 
-        e: A batch of error rows of shape [b, m]. Each row bit designates an
-           error state of element in the corresponding sensitivity sequence.
+        e: Error rows of shape [m, b]. Each error row bit marks the error
+           state of the corresponding row within the sensitivity group.
 
     Returns:
-        A batch of near-optimal difference masks of shape [b, n].
+        Near-optimal difference rows of shape [m, n].
     """
 
     if (
@@ -123,16 +123,16 @@ def specialized_activation_sensitivity(sp: BitTensor, sm: BitTensor) -> BitTenso
 
 def specialized_error_projection(ss: BitTensor, e: BitTensor) -> BitTensor:
     """
-    Perform specialized error projection for a batch of sensitivity sequences.
+    Perform error projection for specialized sensitivity row groups.
 
     Args:
-        ss: A batch of specialized sensitivity rows with shape [b, m, n].
+        sm: Sensitivity row groups of shape [m, b, n].
 
-        e: A batch of error rows of shape [b, m]. Each row bit designates an
-           error state of element in the corresponding sensitivity sequence.
+        e: Error rows of shape [m, b]. Each error row bit marks the error
+           state of the corresponding row within the sensitivity group.
 
     Returns:
-        A batch of near-optimal difference masks of shape [b, n].
+        Optimal difference rows of shape [m, n].
     """
 
     if len(ss.shape) != 3 or ss.shape[:-1] != e.shape:
