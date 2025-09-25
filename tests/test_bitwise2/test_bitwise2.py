@@ -102,7 +102,6 @@ def test_bit_tensor_sample_random_bit_():
     for _ in range(100):
         tensor = bitwise2.BitTensor(68, d.clone())
         tensor.sample_random_bit_()
-        print(tensor)
 
         row0_0 = tensor[0] == bitwise2.bit_tensor(
             "10000000000000000000000000000000_00000000000000000000000000000000_0000",

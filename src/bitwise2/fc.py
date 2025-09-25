@@ -1,7 +1,10 @@
 """Operations related to fully connected layer."""
 
-from bitwise2 import BitTensor
+import torch
+
+from bitwise2 import BitTensor, from_bool_tensor
 from bitwise2 import bp
+import bitwise2_ext_cpu
 
 
 class FullyConnectedLayer:
@@ -51,4 +54,44 @@ class FullyConnectedLayer:
     def update(self, inputs: BitTensor, errors: BitTensor) -> BitTensor:
         """Updates weights and biases and returns estimated input errors."""
 
-        raise NotImplementedError
+        sp, sm = bp.activation_sensitivity(inputs, self._weights)
+        ss = bp.specialized_activation_sensitivity(sp, sm)
+        ss.data.transpose_(0, 1)
+        te = errors.to_bool_tensor().transpose_(0, 1)
+        w_mask = bp.specialized_error_projection(ss, from_bool_tensor(te))
+        self._weights.data.bitwise_xor_(w_mask.data)
+
+        ss.data.transpose_(0, 1).bitwise_and_(w_mask.data)
+        te ^= torch.any(ss.data != 0, dim=2).transpose_(0, 1)
+
+        _, sm = bp.activation_sensitivity(inputs, self._weights)
+        sm.data.transpose_(0, 1)
+        w_mask = bp.error_projection(sm, from_bool_tensor(te))
+        self._weights.data.bitwise_xor_(w_mask.data)
+
+        sm.data.transpose_(0, 1)
+        e_mask = (sm.data & w_mask.data) == sm.data
+        e_mask &= sm.data.sum(dim=-1, keepdim=True) != 0
+        te ^= e_mask.squeeze_().transpose_(0, 1)
+
+        te.transpose_(0, 1)
+        b_mask = bitwise2_ext_cpu.bitwise_and_reduce(te, 0)
+        self._biases.data.bitwise_xor_(from_bool_tensor(b_mask).data)
+        te.bitwise_xor_(b_mask)
+
+        sp, sm = bp.activation_sensitivity(self._weights, inputs)
+        ss = bp.specialized_activation_sensitivity(sp, sm)
+        ss.data.transpose_(0, 1)
+        i_mask = bp.specialized_error_projection(ss, from_bool_tensor(te))
+        inputs2 = BitTensor(inputs.shape[-1], inputs.data ^ i_mask.data)
+
+        ss.data.transpose_(0, 1).bitwise_and_(i_mask.data)
+        te ^= torch.any(ss.data != 0, dim=2).transpose_(0, 1)
+
+        _, sm = bp.activation_sensitivity(self._weights, inputs2)
+        sm.data.transpose_(0, 1)
+        i_mask = bp.error_projection(sm, from_bool_tensor(te))
+        inputs2.data.bitwise_xor_(i_mask.data)
+
+        inputs2.data.bitwise_xor_(inputs.data)
+        return inputs2
