@@ -1,6 +1,5 @@
 """Operations related to Boolean backpropagation."""
 
-from enum import Enum
 from typing import Tuple
 
 import torch
@@ -14,35 +13,32 @@ except ImportError:
     bitwise2_ext_cuda = None
 
 
-class SensitivityDependency(Enum):
-    """Specifies what the activation is sensitive to changes in."""
-
-    WEIGHTS = "weights"
-    INPUTS = "inputs"
-
-
 def activation_sensitivity(
-    x: BitTensor, w: BitTensor, dependency: SensitivityDependency
+    signal: BitTensor,
+    target: BitTensor,
 ) -> Tuple[BitTensor, BitTensor]:
     """
     Compute positive and negative activation sensitivity tensors.
 
     Args:
-        x: A batch of inputs with shape [b, n].
-        w: Weights with shape [m, n].
-        dependency: Whether to compute sensitivity with respect to weights or inputs.
+        signal: Tensor of shape [b, n] that serves as an input for row activation.
+        target: Tensor of shape [m, n] whose changes the sensitivity is measured against.
 
     Returns:
         A positive and negative activation sensitivity tensors, each of shape [b, m, n].
     """
-    if len(x.shape) != 2 or len(w.shape) != 2 or x.shape[1] != w.shape[1]:
+    if (
+        len(signal.shape) != 2
+        or len(target.shape) != 2
+        or signal.shape[1] != target.shape[1]
+    ):
         raise ValueError("unexpected or non-matching argument shapes")
 
-    sm = x.data.unsqueeze(1) & w.data
+    sm = signal.data.unsqueeze(1) & target.data
     non_zero = (sm != 0).any(dim=-1, keepdim=True)
-    src = x.data.unsqueeze(1) if dependency == SensitivityDependency.WEIGHTS else w.data
+    src = signal.data.unsqueeze(1)
     sp = torch.where(non_zero, 0, src)
-    return BitTensor(x.shape[-1], sp), BitTensor(x.shape[-1], sm)
+    return BitTensor(signal.shape[-1], sp), BitTensor(signal.shape[-1], sm)
 
 
 def error_projection(sm: BitTensor, e: BitTensor) -> BitTensor:
