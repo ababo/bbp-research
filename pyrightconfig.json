@@ -1,0 +1,12 @@
+{
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "build/lib.linux-x86_64-cpython-312",
+        "src"
+      ]
+    }
+  ]
+}
+

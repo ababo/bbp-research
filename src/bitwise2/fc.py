@@ -47,12 +47,24 @@ class FullyConnectedLayer:
             A batch of input activations of shape [b, m].
         """
 
+        if len(inputs.shape) != 2 or inputs.shape[1] != self._weights.shape[1]:
+            raise ValueError("unexpected or non-matching argument shapes")
+
         z = bp.row_activation(inputs, self._weights)
         z.data.bitwise_xor_(self._biases.data)
         return z
 
     def update(self, inputs: BitTensor, errors: BitTensor) -> BitTensor:
         """Updates weights and biases and returns estimated input errors."""
+
+        if (
+            len(inputs.shape) != 2
+            or len(errors.shape) != 2
+            or inputs.shape[1] != self._weights.shape[1]
+            or errors.shape[0] != inputs.shape[0]
+            or errors.shape[1] != self._weights.shape[0]
+        ):
+            raise ValueError("unexpected or non-matching argument shapes")
 
         sp, sm = bp.activation_sensitivity(inputs, self._weights)
         ss = bp.specialized_activation_sensitivity(sp, sm)
@@ -70,9 +82,9 @@ class FullyConnectedLayer:
         self._weights.data.bitwise_xor_(w_mask.data)
 
         sm.data.transpose_(0, 1)
-        e_mask = (sm.data & w_mask.data) == sm.data
-        e_mask &= sm.data.sum(dim=-1, keepdim=True) != 0
-        te ^= e_mask.squeeze_().transpose_(0, 1)
+        e_mask = torch.all((sm.data & w_mask.data) == sm.data, dim=-1)
+        e_mask &= sm.data.sum(dim=-1) != 0
+        te ^= e_mask.transpose_(0, 1)
 
         te.transpose_(0, 1)
         b_mask = bitwise2_ext_cpu.bitwise_and_reduce(te, 0)

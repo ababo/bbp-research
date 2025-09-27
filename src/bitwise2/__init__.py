@@ -7,6 +7,7 @@ from typing import cast, Any, TypeAlias, Union
 import torch
 
 import bitwise2_ext_cpu
+from bitwise2.util import map_bit_counts
 
 
 class BitTensor:
@@ -46,10 +47,10 @@ class BitTensor:
     def __str__(self) -> str:
         return self.format()
 
-    @property
-    def shape(self) -> list[int]:
-        """Return the shape of the tensor."""
-        return list(self._data.shape[:-1]) + [self._bit_length]
+    def clone(self) -> "BitTensor":
+        """Clone the tensor."""
+
+        return BitTensor(self._bit_length, self._data.clone())
 
     @property
     def data(self) -> torch.Tensor:
@@ -174,17 +175,6 @@ class BitTensor:
                 tensor[..., partial_idx] &= mask
             return tensor
 
-        def popcount(tensor: torch.Tensor) -> torch.Tensor:
-            x = tensor.clone()
-            x += -((x >> 1) & 0x55555555)
-            x = (x & 0x33333333) + ((x >> 2) & 0x33333333)
-            x += x >> 4
-            x &= 0x0F0F0F0F
-            x += x >> 8
-            x += x >> 16
-            x &= 0x3F
-            return x
-
         def sample_random_bit_(tensor: torch.Tensor) -> torch.Tensor:
             device = tensor.device
             shape = tensor.shape
@@ -195,7 +185,7 @@ class BitTensor:
             tensor_flat = tensor.reshape(flat_batch, num_rows, num_words)
 
             # Popcount per word per row
-            word_pops = popcount(tensor_flat)
+            word_pops = map_bit_counts(tensor_flat)
 
             # Total set bits per row
             total_pops = word_pops.sum(dim=-1)
@@ -263,6 +253,11 @@ class BitTensor:
         zero_last_n_bits_(self._data, n)
         sample_random_bit_(self._data)
         return self
+
+    @property
+    def shape(self) -> list[int]:
+        """Return the shape of the tensor."""
+        return list(self._data.shape[:-1]) + [self._bit_length]
 
     def to_bool_tensor(self) -> torch.Tensor:
         """Construct a corresponding Boolean PyTorch tensor."""
