@@ -54,7 +54,9 @@ class FullyConnectedLayer:
         z.data.bitwise_xor_(self._biases.data)
         return z
 
-    def update(self, inputs: BitTensor, errors: BitTensor) -> BitTensor:
+    def update(
+        self, inputs: BitTensor, errors: BitTensor, sample_random_bit=True
+    ) -> BitTensor:
         """Updates weights and biases and returns estimated input errors."""
 
         if (
@@ -71,6 +73,8 @@ class FullyConnectedLayer:
         ss.data.transpose_(0, 1)
         te = errors.to_bool_tensor().transpose_(0, 1)
         w_mask = bp.specialized_error_projection(ss, from_bool_tensor(te))
+        if sample_random_bit:
+            w_mask.sample_random_bit_()
         self._weights.data.bitwise_xor_(w_mask.data)
 
         ss.data.transpose_(0, 1).bitwise_and_(w_mask.data)
@@ -95,6 +99,8 @@ class FullyConnectedLayer:
         ss = bp.specialized_activation_sensitivity(sp, sm)
         ss.data.transpose_(0, 1)
         i_mask = bp.specialized_error_projection(ss, from_bool_tensor(te))
+        if sample_random_bit:
+            i_mask.sample_random_bit_()
         inputs2 = BitTensor(inputs.shape[-1], inputs.data ^ i_mask.data)
 
         ss.data.transpose_(0, 1).bitwise_and_(i_mask.data)

@@ -17,7 +17,7 @@ def test_fully_connected_layer_update():
     inputs_clone = inputs.clone()
     errors_clone = errors.clone()
 
-    result = fcl.update(inputs, errors)
+    result = fcl.update(inputs, errors, sample_random_bit=False)
 
     assert inputs == inputs_clone
     assert errors == errors_clone
